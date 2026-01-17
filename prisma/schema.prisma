@@ -1,0 +1,689 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String?   // Hashed with bcrypt (null for OAuth users)
+  rollNumber    String    @unique
+  firstName     String
+  lastName      String
+  profilePhoto  String?   // URL to stored image
+  role          Role      @default(STUDENT)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // Role-specific relations
+  student  Student?
+  faculty  Faculty?
+  admin    Admin?
+
+  // Activity
+  feedbacksGiven CourseFeedback[]
+  auditLogs      AuditLog[]
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+  ADMIN
+  SUPER_ADMIN
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// STUDENT PROFILE
+// ============================================
+
+model Student {
+  id                          String        @id @default(cuid())
+  userId                      String        @unique
+  user                        User          @relation(fields: [userId], references: [id])
+
+  // Personal Details
+  department                  String        // "Computer Science and Engineering"
+  yearOfEntry                 Int           // 2023
+  degreeType                  DegreeType    // B.Tech, M.Tech, etc.
+  degree                      String        // "B.Tech"
+  category                    Category?     // General, SC, ST, OBC, EWS
+  minorSpecialization         String?       // Optional minor
+  concentrationSpecialization String?       // Optional concentration
+  currentStatus               StudentStatus @default(REGISTERED)
+
+  // Academic Summary
+  currentSGPA             Float? // Current semester GPA
+  cgpa                    Float? // Cumulative GPA
+  creditsRegistered       Float  @default(0)
+  creditsEarned           Float  @default(0)
+  cumulativeCreditsEarned Float  @default(0)
+
+  // Relations
+  enrollments     Enrollment[]
+  documents       Document[]
+  semesterRecords SemesterRecord[]
+  simpleFeedbacks SimpleFeedback[]
+  payments        Payment[]
+
+  @@index([userId])
+}
+
+enum DegreeType {
+  BTECH
+  MTECH
+  PHD
+  MS
+  DUAL_DEGREE
+}
+
+enum Category {
+  GENERAL
+  SC
+  ST
+  OBC_NCL
+  OBC_CL
+  EWS
+  PH
+}
+
+enum StudentStatus {
+  REGISTERED
+  ON_LEAVE
+  GRADUATED
+  WITHDRAWN
+  SUSPENDED
+  DEREGISTERED
+}
+
+// ============================================
+// SEMESTER & ACADEMIC SESSIONS
+// ============================================
+
+model AcademicSession {
+  id         String      @id @default(cuid())
+  name       String      @unique // "2025-II", "2025-S", "2026-I"
+  fullName   String // "2025-II : current session (2025-12-04 to 2026-05-30)"
+  type       SessionType // ODD, EVEN, SUMMER
+  academicYear String // "2025-26"
+  startDate  DateTime
+  endDate    DateTime
+  isCurrent  Boolean     @default(false)
+  isUpcoming Boolean     @default(false)
+
+  // Relations
+  courseOfferings CourseOffering[]
+  feedbackCycles  FeedbackCycle[]
+  academicDates   AcademicDate[]
+  semesterRecords SemesterRecord[]
+  slotCourses     SlotCourse[]
+}
+
+enum SessionType {
+  ODD    // July - December (I)
+  EVEN   // January - May (II)
+  SUMMER // May - July (S)
+}
+
+model SemesterRecord {
+  id        String          @id @default(cuid())
+  studentId String
+  student   Student         @relation(fields: [studentId], references: [id])
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  sgpa              Float?
+  creditsRegistered Float
+  creditsEarned     Float
+
+  @@unique([studentId, sessionId])
+  @@index([studentId])
+}
+
+// ============================================
+// COURSES
+// ============================================
+
+model Course {
+  id         String @id @default(cuid())
+  courseCode String @unique // "CS301", "GE111", "HS202"
+  courseName String // "Operating Systems"
+
+  // L-T-P-S-C Format
+  lectureHours   Int
+  tutorialHours  Int
+  practicalHours Int
+  selfStudyHours Float
+  credits        Float
+
+  // Classification
+  department     String
+  courseCategory CourseCategory
+  level          CourseLevel    @default(UNDERGRADUATE)
+
+  // Prerequisites
+  prerequisites  Course[] @relation("Prerequisites")
+  prerequisiteOf Course[] @relation("Prerequisites")
+
+  // Relations
+  offerings   CourseOffering[]
+  slotCourses SlotCourse[]
+
+  // Metadata
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CourseCategory {
+  SC // Subject Core
+  PC // Program Core
+  PE // Program Elective
+  OE // Open Elective
+  HC // Humanities Core
+  GR // Graduate Course
+  NN // NSO/NCC/NSS
+  CP // Capstone Project
+  DE // Department Elective
+}
+
+enum CourseLevel {
+  UNDERGRADUATE
+  GRADUATE
+  DOCTORAL
+}
+
+// ============================================
+// SLOTWISE COURSES
+// ============================================
+
+model SlotCourse {
+  id        String          @id @default(cuid())
+  courseId  String
+  course    Course          @relation(fields: [courseId], references: [id])
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  // Slot information
+  slot         String       // "A", "B", "C", etc.
+  slotCategory SlotCategory
+
+  // Instructor (Coordinator)
+  coordinatorId String
+  coordinator   Faculty @relation(fields: [coordinatorId], references: [id])
+
+  // Target audience
+  targetYear    String? // "3rd and/or 4th year B.Tech"
+  targetProgram String? // "B.Tech", "M.Tech", etc.
+
+  displayOrder Int @default(0)
+
+  @@unique([courseId, sessionId, slot])
+}
+
+enum SlotCategory {
+  HSS_SCIENCE_MATH_ELEC
+  HSS_ELEC_PROGRAM_CORE
+  DEPARTMENT_ELECTIVE
+  OPEN_ELECTIVE
+  CORE
+  PROJECT
+}
+
+// ============================================
+// COURSE OFFERINGS
+// ============================================
+
+model CourseOffering {
+  id        String          @id @default(cuid())
+  courseId  String
+  course    Course          @relation(fields: [courseId], references: [id])
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  offeringDepartment String
+
+  // Instructors
+  instructors OfferingInstructor[]
+
+  // Capacity
+  maxStrength     Int @default(60)
+  currentStrength Int @default(0)
+  fee             Int @default(0)
+
+  // Status
+  status OfferingStatus @default(PLANNED)
+  
+  // Feedback - controlled by faculty
+  feedbackOpen Boolean @default(false)
+
+  // Timetable
+  schedule ClassSchedule[]
+
+  // Relations
+  enrollments     Enrollment[]
+  feedbacks       CourseFeedback[]
+  simpleFeedbacks SimpleFeedback[]
+
+  payments        Payment[]
+  @@unique([courseId, sessionId])
+  @@index([sessionId])
+}
+
+enum OfferingStatus {
+  PLANNED
+  OPEN_FOR_ENROLLMENT
+  ENROLLMENT_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model OfferingInstructor {
+  id         String         @id @default(cuid())
+  offeringId String
+  offering   CourseOffering @relation(fields: [offeringId], references: [id])
+  facultyId  String
+  faculty    Faculty        @relation(fields: [facultyId], references: [id])
+  isPrimary  Boolean        @default(false)
+
+  @@unique([offeringId, facultyId])
+  @@index([offeringId])
+  @@index([facultyId])
+}
+
+// ============================================
+// ENROLLMENT
+// ============================================
+
+model Enrollment {
+  id               String         @id @default(cuid())
+  studentId        String
+  student          Student        @relation(fields: [studentId], references: [id])
+  courseOfferingId String
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id])
+
+  enrollmentType   EnrollmentType
+  enrollmentStatus EnrollmentStatus @default(PENDING)
+  courseCategory   CourseCategory
+
+  grade             String? // "A+", "A", "A-", "B", etc. or "NA"
+  attendancePercent Float?
+  isCompleted       Boolean  @default(false)
+  completionStatus  String? // "(Completed)", "(Enrolling)"
+
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([studentId, courseOfferingId])
+  @@index([studentId])
+  @@index([courseOfferingId])
+}
+
+enum EnrollmentType {
+  CREDIT
+  AUDIT
+  ADDITIONAL
+  IMPROVEMENT
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ENROLLED
+  WAITLISTED
+  DROPPED
+  WITHDRAWN
+  COMPLETED
+  FAILED
+}
+
+// ============================================
+// COURSE FEEDBACK
+// ============================================
+
+model FeedbackCycle {
+  id        String          @id @default(cuid())
+  name      String // "Mid-Sem Feedback 2025-II"
+  type      FeedbackType
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false) // Admin toggle
+
+  questions FeedbackQuestion[]
+  feedbacks CourseFeedback[]
+
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+enum FeedbackType {
+  MID_SEM
+  END_SEM
+}
+
+model FeedbackQuestion {
+  id       String         @id @default(cuid())
+  cycleId  String?
+  cycle    FeedbackCycle? @relation(fields: [cycleId], references: [id])
+
+  questionNumber Int
+  questionText   String
+  questionType   QuestionType
+  options        String[]
+  isMandatory    Boolean      @default(true)
+  isActive       Boolean      @default(true)
+
+  responses FeedbackResponse[]
+}
+
+enum QuestionType {
+  YES_NO
+  LIKERT_5
+  TEXT
+  RATING
+}
+
+model CourseFeedback {
+  id               String         @id @default(cuid())
+  cycleId          String
+  cycle            FeedbackCycle  @relation(fields: [cycleId], references: [id])
+  studentId        String
+  student          User           @relation(fields: [studentId], references: [id])
+  courseOfferingId String
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  instructorId     String
+  instructor       Faculty        @relation(fields: [instructorId], references: [id])
+
+  submittedAt DateTime @default(now())
+  isAnonymous Boolean  @default(true)
+
+  responses FeedbackResponse[]
+
+  @@unique([cycleId, studentId, courseOfferingId, instructorId])
+  @@index([cycleId])
+  @@index([studentId])
+}
+
+model FeedbackResponse {
+  id         String           @id @default(cuid())
+  feedbackId String
+  feedback   CourseFeedback   @relation(fields: [feedbackId], references: [id])
+  questionId String
+  question   FeedbackQuestion @relation(fields: [questionId], references: [id])
+  response   String
+
+  @@unique([feedbackId, questionId])
+}
+
+// Simple text feedback controlled by faculty (not tied to FeedbackCycle)
+model SimpleFeedback {
+  id               String         @id @default(cuid())
+  courseOfferingId String
+  courseOffering   CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  studentId        String
+  student          Student        @relation(fields: [studentId], references: [id])
+  
+  feedback    String   // The text feedback
+  submittedAt DateTime @default(now())
+  
+  @@unique([courseOfferingId, studentId]) // One feedback per student per course
+  @@index([courseOfferingId])
+  @@index([studentId])
+}
+
+// ============================================
+// ACADEMIC CALENDAR & DATES
+// ============================================
+
+model AcademicDate {
+  id        String          @id @default(cuid())
+  sessionId String
+  session   AcademicSession @relation(fields: [sessionId], references: [id])
+
+  eventType AcademicEvent
+  eventName String
+  startDate DateTime?
+  endDate   DateTime?
+
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+}
+
+enum AcademicEvent {
+  ACADEMIC_SESSION
+  COURSE_PRE_REGISTRATION
+  CLASSES
+  COURSE_DROP
+  MIDSEM_COURSE_FEEDBACK
+  MID_SEM_EXAMS
+  WITHDRAW
+  END_SEM_EXAMS
+  COURSE_FEEDBACK
+  GRADES_SUBMISSION
+  SHOW_FEEDBACK_MIDSEM
+  SHOW_FEEDBACK_ENDSEM
+  RESULT_DECLARATION
+  HOLIDAYS
+  CUSTOM
+}
+
+model AcademicDocument {
+  id           String          @id @default(cuid())
+  title        String
+  documentType AcademicDocType
+  sessionId    String?
+
+  fileUrl   String
+  fileName  String
+  fileSize  Int
+
+  extractedData Json?
+  isParsed      Boolean @default(false)
+  parseError    String?
+
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+}
+
+enum AcademicDocType {
+  ACADEMIC_CALENDAR
+  EXAM_SCHEDULE
+  HOLIDAY_LIST
+  FEE_STRUCTURE
+  CURRICULUM
+  SYLLABUS
+  TIMETABLE
+}
+
+// ============================================
+// FACULTY
+// ============================================
+
+model Faculty {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  department     String
+  designation    Designation
+  specialization String?
+  officeRoom     String?
+
+  courseOfferings   OfferingInstructor[]
+  slotCourses       SlotCourse[]
+  feedbacksReceived CourseFeedback[]
+
+  @@index([userId])
+}
+
+enum Designation {
+  PROFESSOR
+  ASSOCIATE_PROFESSOR
+  ASSISTANT_PROFESSOR
+  VISITING_FACULTY
+  ADJUNCT_FACULTY
+}
+
+// ============================================
+// ADMIN & AUDIT
+// ============================================
+
+model Admin {
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  adminType   AdminType
+  permissions String[]
+}
+
+enum AdminType {
+  SUPER_ADMIN
+  ACADEMIC_ADMIN
+  DEPARTMENT_ADMIN
+  EXAM_ADMIN
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+}
+
+// ============================================
+// DOCUMENTS & CLASS SCHEDULES
+// ============================================
+
+model Document {
+  id           String       @id @default(cuid())
+  studentId    String
+  student      Student      @relation(fields: [studentId], references: [id])
+  documentType DocumentType
+  fileName     String
+  fileUrl      String
+  uploadedAt   DateTime     @default(now())
+}
+
+enum DocumentType {
+  TRANSCRIPT
+  BONAFIDE
+  NO_DUES
+  CHARACTER_CERTIFICATE
+  OTHER
+}
+
+model ClassSchedule {
+  id           String         @id @default(cuid())
+  offeringId   String
+  offering     CourseOffering @relation(fields: [offeringId], references: [id])
+  dayOfWeek    DayOfWeek
+  startTime    String
+  endTime      String
+  room         String?
+  scheduleType ScheduleType   @default(LECTURE)
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  amount            Int
+  currency          String         @default("INR")
+  status            PaymentStatus  @default(PENDING)
+  razorpayOrderId   String         @unique
+  razorpayPaymentId String?        @unique
+  razorpaySignature String?
+
+  studentId         String
+  student           Student        @relation(fields: [studentId], references: [id])
+  courseOfferingId  String
+  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id])
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum ScheduleType {
+  LECTURE
+  TUTORIAL
+  PRACTICAL
+  OFFICE_HOURS
+}
