@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { parseRollNumber } from "@/lib/student-utils";
 import prisma from "@/lib/db";
 
 export async function GET(request: NextRequest) {
@@ -79,15 +80,25 @@ export async function GET(request: NextRequest) {
             },
         });
 
+        const rollNumber = student?.user.rollNumber || session.user.rollNumber || "";
+        const parsedDetails = parseRollNumber(rollNumber);
+
         if (!student) {
             return NextResponse.json({
                 user: {
                     firstName: session.user.name?.split(" ")[0] || "Student",
                     lastName: session.user.name?.split(" ").slice(1).join(" ") || "",
                     email: session.user.email,
-                    rollNumber: session.user.rollNumber || "",
+                    rollNumber: rollNumber,
                 },
-                student: null,
+                student: {
+                    department: parsedDetails?.department || "Not assigned",
+                    yearOfEntry: parsedDetails?.yearOfEntry || 0,
+                    degreeType: parsedDetails?.degreeType || "N/A",
+                    degree: parsedDetails?.degree || "N/A",
+                    currentStatus: "REGISTERED",
+                    cgpa: null,
+                },
                 enrollments: [],
                 semesterRecords: [],
             });
@@ -127,12 +138,13 @@ export async function GET(request: NextRequest) {
                 rollNumber: student.user.rollNumber,
             },
             student: {
-                department: student.department,
-                yearOfEntry: student.yearOfEntry,
-                degreeType: student.degreeType,
-                degree: student.degree,
+                department: student.department || parsedDetails?.department || "Not assigned",
+                yearOfEntry: student.yearOfEntry || parsedDetails?.yearOfEntry || 0,
+                degreeType: student.degreeType || parsedDetails?.degreeType || "N/A",
+                degree: student.degree || parsedDetails?.degree || "N/A",
                 currentStatus: student.currentStatus,
                 cgpa: student.cgpa,
+                cumulativeCreditsEarned: student.cumulativeCreditsEarned
             },
             enrollments,
             semesterRecords,
