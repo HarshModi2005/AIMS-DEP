@@ -4,7 +4,8 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 import { parseRollNumber } from "@/lib/utils";
-import type { Role } from "@prisma/client";
+import { parseRollNumber as parseStudentDetails } from "@/lib/student-utils";
+import type { Role, DegreeType } from "@prisma/client";
 
 declare module "next-auth" {
     interface User {
@@ -22,6 +23,7 @@ declare module "next-auth" {
         };
     }
 }
+
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -95,6 +97,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 const existingUser = await prisma.user.findUnique({
                     where: { email },
+                    include: { student: true }, // Check if student profile exists
                 });
 
                 if (!existingUser) {
@@ -106,16 +109,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     const firstName = nameParts[0] || "User";
                     const lastName = nameParts.slice(1).join(" ") || "";
 
-                    await prisma.user.create({
-                        data: {
-                            email,
-                            rollNumber,
-                            firstName,
-                            lastName,
-                            profilePhoto: user.image,
-                            role: "STUDENT",
-                        },
+                    // Parse student details
+                    const studentDetails = parseStudentDetails(rollNumber);
+
+                    // Create User and optionally Student in a transaction
+                    await prisma.$transaction(async (tx) => {
+                        const newUser = await tx.user.create({
+                            data: {
+                                email,
+                                rollNumber,
+                                firstName,
+                                lastName,
+                                profilePhoto: user.image,
+                                role: "STUDENT",
+                            },
+                        });
+
+                        // Create student profile if details are valid
+                        if (studentDetails && studentDetails.degreeType !== "UNKNOWN") {
+                            await tx.student.create({
+                                data: {
+                                    userId: newUser.id,
+                                    department: studentDetails.department,
+                                    yearOfEntry: studentDetails.yearOfEntry,
+                                    degree: studentDetails.degree,
+                                    degreeType: studentDetails.degreeType as DegreeType,
+                                    currentStatus: "REGISTERED",
+                                },
+                            });
+                        }
                     });
+                } else {
+                    // Existing user - check if student profile is missing
+                    if (!existingUser.student && existingUser.role === "STUDENT") {
+                        const studentDetails = parseStudentDetails(existingUser.rollNumber);
+
+                        if (studentDetails && studentDetails.degreeType !== "UNKNOWN") {
+                            await prisma.student.create({
+                                data: {
+                                    userId: existingUser.id,
+                                    department: studentDetails.department,
+                                    yearOfEntry: studentDetails.yearOfEntry,
+                                    degree: studentDetails.degree,
+                                    degreeType: studentDetails.degreeType as DegreeType,
+                                    currentStatus: "REGISTERED",
+                                },
+                            });
+                        }
+                    }
                 }
             }
             return true;
