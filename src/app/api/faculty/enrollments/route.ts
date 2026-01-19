@@ -42,9 +42,6 @@ export async function GET(request: NextRequest) {
                     },
                 },
                 enrollments: {
-                    where: {
-                        enrollmentStatus: "PENDING",
-                    },
                     include: {
                         student: {
                             include: {
@@ -71,13 +68,14 @@ export async function GET(request: NextRequest) {
             maxStrength: offering.maxStrength,
             currentStrength: offering.currentStrength,
             feedbackOpen: offering.feedbackOpen,
-            pendingRequests: offering.enrollments.map((e) => ({
+            students: offering.enrollments.map((e) => ({
                 enrollmentId: e.id,
                 studentId: e.studentId,
                 rollNumber: e.student.user.rollNumber,
                 name: `${e.student.user.firstName} ${e.student.user.lastName}`,
                 email: e.student.user.email,
                 enrollmentType: e.enrollmentType,
+                enrollmentStatus: e.enrollmentStatus,
                 requestedAt: e.enrolledAt,
             })),
         }));
