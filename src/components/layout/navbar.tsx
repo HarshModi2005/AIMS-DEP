@@ -140,8 +140,9 @@ export function Navbar() {
             return [...facultyNavItems, ...commonNavItems];
         }
         if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
-            // Admins can see everything
-            return [...studentNavItems, ...commonNavItems];
+            // Admins can see mostly everything student sees EXCEPT Student Record
+            const adminParams = studentNavItems.filter(item => item.label !== "Student Record");
+            return [...adminParams, ...commonNavItems];
         }
         // Default to student
         return [...studentNavItems, ...commonNavItems];
