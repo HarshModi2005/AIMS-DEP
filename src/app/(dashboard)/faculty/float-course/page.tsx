@@ -103,6 +103,29 @@ export default function FloatCoursePage() {
             c.courseName.toLowerCase().includes(search.toLowerCase())
     );
 
+    const updateLtps = (field: string, value: number) => {
+        const updates: any = { [field]: value };
+        let L = field === "lectureHours" ? value : newCourse.lectureHours;
+        let T = field === "tutorialHours" ? value : newCourse.tutorialHours;
+        let P = field === "practicalHours" ? value : newCourse.practicalHours;
+
+        if (field === "lectureHours") {
+            // T default = L/3
+            T = Math.floor(L / 3);
+            updates.tutorialHours = T;
+        }
+
+        // S = 2L + P/2 - T
+        const S = (2 * L) + (P / 2) - T;
+        updates.selfStudyHours = Math.max(0, S);
+
+        // C = L + P/2
+        const C = L + (P / 2);
+        updates.credits = C;
+
+        setNewCourse((prev) => ({ ...prev, ...updates }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
@@ -316,8 +339,9 @@ export default function FloatCoursePage() {
                                         type="number"
                                         min={1}
                                         max={12}
+                                        step="0.5"
                                         value={newCourse.credits}
-                                        onChange={(e) => setNewCourse({ ...newCourse, credits: parseInt(e.target.value) || 4 })}
+                                        onChange={(e) => setNewCourse({ ...newCourse, credits: parseFloat(e.target.value) || 0 })}
                                         className="w-full px-4 py-2 rounded-lg border border-white/10 bg-zinc-800 focus:ring-2 focus:ring-indigo-500"
                                     />
                                 </div>
@@ -375,7 +399,7 @@ export default function FloatCoursePage() {
                                         type="number"
                                         min={0}
                                         value={newCourse.lectureHours}
-                                        onChange={(e) => setNewCourse({ ...newCourse, lectureHours: parseInt(e.target.value) || 0 })}
+                                        onChange={(e) => updateLtps("lectureHours", parseInt(e.target.value) || 0)}
                                         className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-800 text-center"
                                     />
                                 </div>
@@ -385,7 +409,7 @@ export default function FloatCoursePage() {
                                         type="number"
                                         min={0}
                                         value={newCourse.tutorialHours}
-                                        onChange={(e) => setNewCourse({ ...newCourse, tutorialHours: parseInt(e.target.value) || 0 })}
+                                        onChange={(e) => updateLtps("tutorialHours", parseInt(e.target.value) || 0)}
                                         className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-800 text-center"
                                     />
                                 </div>
@@ -395,7 +419,7 @@ export default function FloatCoursePage() {
                                         type="number"
                                         min={0}
                                         value={newCourse.practicalHours}
-                                        onChange={(e) => setNewCourse({ ...newCourse, practicalHours: parseInt(e.target.value) || 0 })}
+                                        onChange={(e) => updateLtps("practicalHours", parseInt(e.target.value) || 0)}
                                         className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-800 text-center"
                                     />
                                 </div>
@@ -405,8 +429,9 @@ export default function FloatCoursePage() {
                                         type="number"
                                         min={0}
                                         value={newCourse.selfStudyHours}
-                                        onChange={(e) => setNewCourse({ ...newCourse, selfStudyHours: parseInt(e.target.value) || 0 })}
-                                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-800 text-center"
+                                        readOnly
+                                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-800 text-center opacity-75 cursor-not-allowed"
+                                        title="Automatically calculated: S = 2L + P/2 - T"
                                     />
                                 </div>
                             </div>
