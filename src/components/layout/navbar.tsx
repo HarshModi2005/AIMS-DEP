@@ -46,12 +46,12 @@ const studentNavItems: NavItem[] = [
         roles: ["STUDENT"],
         children: [
             { label: "Academic Calendar", href: "/academic-info" },
-            { label: "Important Dates", href: "/academic-info/dates" },
+            { label: "Important Dates", href: "/academic-info" },
         ],
     },
     {
         label: "Courses",
-        href: "/courses",
+        href: "/courses/enrollment",
         icon: BookOpen,
         roles: ["STUDENT"],
         children: [
