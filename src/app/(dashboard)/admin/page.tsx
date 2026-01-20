@@ -1,8 +1,7 @@
-"use client";
-
-import { useSession } from "next-auth/react";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import prisma from "@/lib/db";
 import {
     Users,
     BookOpen,
@@ -76,20 +75,37 @@ const adminModules = [
     },
 ];
 
-const quickStats = [
-    { label: "Total Students", value: "1,842", icon: Users, change: "+12%", trend: "up" },
-    { label: "Active Enrollments", value: "8,456", icon: UserCheck, change: "+8%", trend: "up" },
-    { label: "Pending Feedback", value: "234", icon: MessageSquare, change: "-15%", trend: "down" },
-    { label: "Documents Pending", value: "12", icon: FileText, change: "+2", trend: "up" },
-];
-
-export default function AdminDashboard() {
-    const { data: session } = useSession();
+export default async function AdminDashboard() {
+    const session = await auth();
 
     // Redirect non-admin users
-    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
+    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "SUPER_ADMIN")) {
         redirect("/");
     }
+
+    // Fetch actual student count from database
+    const totalStudents = await prisma.user.count({
+        where: {
+            role: "STUDENT"
+        }
+    });
+
+    // Fetch total user count (all roles)
+    const totalUsers = await prisma.user.count();
+
+    // Fetch active feedback cycles count
+    const activeFeedbackCycles = await prisma.feedbackCycle.count({
+        where: {
+            isActive: true
+        }
+    });
+
+    const quickStats = [
+        { label: "Total Students", value: totalStudents.toString(), icon: Users, change: "+12%", trend: "up" },
+        { label: "Total Users", value: totalUsers.toString(), icon: UserCheck, change: "+8%", trend: "up" },
+        { label: "Active Feedback Cycles", value: activeFeedbackCycles.toString(), icon: MessageSquare, change: "-15%", trend: "down" },
+        { label: "Documents Pending", value: "12", icon: FileText, change: "+2", trend: "up" },
+    ];
 
     return (
         <div className="min-h-screen bg-zinc-950 text-white p-6">

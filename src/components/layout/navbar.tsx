@@ -66,12 +66,6 @@ const studentNavItems: NavItem[] = [
         roles: ["STUDENT"],
     },
     {
-        label: "Student Record",
-        href: "/student-record",
-        icon: GraduationCap,
-        roles: ["STUDENT"],
-    },
-    {
         label: "Course Feedback",
         href: "/feedback",
         icon: MessageSquare,
@@ -125,12 +119,6 @@ const adminNavItems: NavItem[] = [
             { label: "Courses for Enrollment", href: "/courses/enrollment" },
             { label: "Courses Available for Offering", href: "/courses/offerings" },
         ],
-    },
-    {
-        label: "Student Record",
-        href: "/student-record",
-        icon: GraduationCap,
-        roles: ["ADMIN", "SUPER_ADMIN"],
     },
     {
         label: "Course Feedback",
