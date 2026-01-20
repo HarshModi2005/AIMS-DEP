@@ -99,12 +99,7 @@ const facultyNavItems: NavItem[] = [
         icon: Plus,
         roles: ["FACULTY"],
     },
-    {
-        label: "Enrolled Students",
-        href: "/faculty",
-        icon: Users,
-        roles: ["FACULTY"],
-    },
+
 ];
 
 // Admin-specific nav items

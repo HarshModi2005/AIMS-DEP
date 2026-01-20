@@ -11,6 +11,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        if (session.user.role === "ADMIN" || session.user.role === "SUPER_ADMIN") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         // Get the user's student profile with optimized selective fields
         const student = await prisma.student.findFirst({
             where: {

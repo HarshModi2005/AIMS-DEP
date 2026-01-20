@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { FileText, GraduationCap, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +60,14 @@ export default function StudentRecordPage() {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState<"academics" | "documents">("academics");
     const [showOnlyEnrolled, setShowOnlyEnrolled] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
+            router.push("/admin");
+        }
+    }, [session, router]);
+
     const [studentData, setStudentData] = useState<StudentData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
