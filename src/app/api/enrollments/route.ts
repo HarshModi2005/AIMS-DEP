@@ -232,6 +232,44 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check Max Credits Limit (24)
+        const currentEnrollments = await prisma.enrollment.findMany({
+            where: {
+                studentId: student.id,
+                courseOffering: {
+                    sessionId: offering.sessionId,
+                },
+                enrollmentStatus: {
+                    in: ["ENROLLED", "PENDING"],
+                },
+            },
+            include: {
+                courseOffering: {
+                    include: {
+                        course: {
+                            select: {
+                                credits: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const currentCredits = currentEnrollments.reduce(
+            (sum, e) => sum + e.courseOffering.course.credits,
+            0
+        );
+
+        if (currentCredits + offering.course.credits > 24) {
+            return NextResponse.json(
+                {
+                    error: `Cannot register. Maximum credits allowed per semester is 24. You currently have ${currentCredits} credits registered (including pending).`,
+                },
+                { status: 400 }
+            );
+        }
+
         // Check capacity
         if (offering.currentStrength >= offering.maxStrength) {
             return NextResponse.json(

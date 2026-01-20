@@ -237,6 +237,16 @@ export default function StudentRecordPage() {
                             Object.entries(filteredEnrollments).map(([sessionName, enrollments]) => {
                                 const semRecord = studentData?.semesterRecords.find(sr => sr.session === sessionName);
 
+                                const currentSessionEnrollments = enrollmentsBySession[sessionName] || [];
+
+                                const computedRegistered = currentSessionEnrollments
+                                    .filter(e => ["ENROLLED", "COMPLETED", "FAILED"].includes(e.enrollmentStatus))
+                                    .reduce((sum, e) => sum + e.credits, 0);
+
+                                const computedEarned = currentSessionEnrollments
+                                    .filter(e => e.enrollmentStatus === "COMPLETED")
+                                    .reduce((sum, e) => sum + e.credits, 0);
+
                                 return (
                                     <div key={sessionName} className="mb-6">
                                         {/* Semester Header */}
@@ -247,7 +257,10 @@ export default function StudentRecordPage() {
                                                     SGPA: <span className="text-emerald-400 font-medium">{semRecord?.sgpa?.toFixed(2) || "N/A"}</span>
                                                 </span>
                                                 <span className="text-zinc-400">
-                                                    Credits: <span className="font-medium">{semRecord?.creditsEarned || 0}/{semRecord?.creditsRegistered || 0}</span>
+                                                    Credits Registered: <span className="font-medium text-white">{computedRegistered}</span>
+                                                </span>
+                                                <span className="text-zinc-400">
+                                                    Credits Earned: <span className="font-medium text-emerald-400">{computedEarned}</span>
                                                 </span>
                                             </div>
                                         </div>
