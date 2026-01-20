@@ -29,9 +29,21 @@ export default async function FeesPage() {
                     course: true,
                 },
             },
+            session: true,
         },
         orderBy: { createdAt: "desc" },
     });
+
+    const currentSession = await prisma.academicSession.findFirst({
+        where: { isCurrent: true },
+    });
+
+    const semesterFeePaid = payments.some(
+        (p) =>
+            p.sessionId === currentSession?.id &&
+            p.type === "SEMESTER_FEE" &&
+            p.status === "SUCCESS"
+    );
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -74,6 +86,43 @@ export default async function FeesPage() {
                     </div>
                 </div>
 
+                {/* Semester Fee Section for Current Session */}
+                {currentSession && (
+                    <div className="mb-8 rounded-xl border border-white/10 bg-zinc-900/50 p-6">
+                        <h2 className="text-xl font-semibold mb-4">Current Session: {currentSession.name}</h2>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-zinc-400">Semester Fee</p>
+                                <p className="text-2xl font-bold mt-1">₹{currentSession.semesterFee}</p>
+                            </div>
+                            <div>
+                                {semesterFeePaid ? (
+                                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                                        <CheckCircle className="h-5 w-5" />
+                                        <span>Semester Fee Paid</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2 text-amber-400 text-sm mb-2">
+                                            <Clock className="h-4 w-4" />
+                                            <span>Required for enrollment</span>
+                                        </div>
+                                        <PayPendingButton
+                                            courseOfferingId="" // Not course specific
+                                            sessionId={currentSession.id} // Session specific
+                                            amount={currentSession.semesterFee}
+                                            userEmail={session?.user?.email || ""}
+                                            userName={session?.user?.name || ""}
+                                            label="Pay Semester Fee"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <h2 className="text-lg font-semibold mb-4">Payment History</h2>
                 <div className="rounded-xl border border-white/10 overflow-hidden bg-zinc-900/50">
                     {payments.length > 0 ? (
                         <table className="w-full">
@@ -81,7 +130,7 @@ export default async function FeesPage() {
                                 <tr className="bg-zinc-900/80 border-b border-white/5 text-left">
                                     <th className="px-6 py-4 text-sm font-medium text-zinc-400">Date</th>
                                     <th className="px-6 py-4 text-sm font-medium text-zinc-400">Order ID</th>
-                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Course</th>
+                                    <th className="px-6 py-4 text-sm font-medium text-zinc-400">Details</th>
                                     <th className="px-6 py-4 text-sm font-medium text-zinc-400">Amount</th>
                                     <th className="px-6 py-4 text-sm font-medium text-zinc-400">Status</th>
                                     <th className="px-6 py-4 text-sm font-medium text-zinc-400">Reference</th>
@@ -97,14 +146,25 @@ export default async function FeesPage() {
                                             {payment.razorpayOrderId}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div>
-                                                <div className="font-medium text-indigo-400">
-                                                    {payment.courseOffering.course.courseCode}
+                                            {payment.type === "SEMESTER_FEE" ? (
+                                                <div>
+                                                    <div className="font-medium text-indigo-400">
+                                                        Semester Fee
+                                                    </div>
+                                                    <div className="text-xs text-zinc-500">
+                                                        {payment.session?.name}
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-zinc-500">
-                                                    {payment.courseOffering.course.courseName}
+                                            ) : (
+                                                <div>
+                                                    <div className="font-medium text-indigo-400">
+                                                        {payment.courseOffering?.course.courseCode}
+                                                    </div>
+                                                    <div className="text-xs text-zinc-500">
+                                                        {payment.courseOffering?.course.courseName}
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium text-white">
                                             ₹{payment.amount}
@@ -114,7 +174,8 @@ export default async function FeesPage() {
                                                 <div className="flex items-center gap-2">
                                                     {getStatusBadge(payment.status)}
                                                     <PayPendingButton
-                                                        courseOfferingId={payment.courseOfferingId}
+                                                        courseOfferingId={payment.courseOfferingId || ""}
+                                                        sessionId={payment.sessionId || ""}
                                                         amount={payment.amount}
                                                         userEmail={session?.user?.email || ""}
                                                         userName={session?.user?.name || ""}
@@ -133,22 +194,7 @@ export default async function FeesPage() {
                         </table>
                     ) : (
                         <div className="p-12 text-center">
-                            <div className="flex justify-center mb-4">
-                                <div className="h-16 w-16 rounded-full bg-zinc-900/50 border border-zinc-800 flex items-center justify-center">
-                                    <CheckCircle className="h-8 w-8 text-emerald-500" />
-                                </div>
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-2">You are up to date!</h3>
-                            <p className="text-zinc-400 max-w-md mx-auto mb-8">
-                                No payment history found. You have no pending dues.
-                                To enroll in new courses and pay fees, visit the enrollment section.
-                            </p>
-                            <Button asChild size="lg" className="bg-indigo-600 hover:bg-indigo-700">
-                                <Link href="/courses/enrollment">
-                                    Pay Fees / Enroll
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Link>
-                            </Button>
+                            <p className="text-zinc-400">No payment history found.</p>
                         </div>
                     )}
                 </div>

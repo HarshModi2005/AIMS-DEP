@@ -215,6 +215,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check if Semester Fee is paid
+        const semesterFeePayment = await prisma.payment.findFirst({
+            where: {
+                studentId: student.id,
+                sessionId: offering.sessionId,
+                type: "SEMESTER_FEE",
+                status: "SUCCESS",
+            },
+        });
+
+        if (!semesterFeePayment) {
+            return NextResponse.json(
+                { error: "Semester Fee not paid. Please pay the semester fee to enroll." },
+                { status: 402 } // Payment Required
+            );
+        }
+
         // Check capacity
         if (offering.currentStrength >= offering.maxStrength) {
             return NextResponse.json(
