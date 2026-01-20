@@ -15,10 +15,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { courseOfferingId } = await req.json();
+        const body = await req.json();
+        const { courseOfferingId, sessionId } = body;
 
-        if (!courseOfferingId) {
-            return NextResponse.json({ error: "Course Offering ID is required" }, { status: 400 });
+        if (!courseOfferingId && !sessionId) {
+            return NextResponse.json({ error: "Either Course Offering ID or Session ID is required" }, { status: 400 });
         }
 
         const student = await prisma.student.findFirst({
@@ -29,26 +30,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Student not found" }, { status: 404 });
         }
 
-        const offering = await prisma.courseOffering.findUnique({
-            where: { id: courseOfferingId },
-        });
+        let amount = 0;
+        let notes: any = { studentId: student.id };
+        let paymentType: "COURSE_FEE" | "SEMESTER_FEE" = "COURSE_FEE";
 
-        if (!offering) {
-            return NextResponse.json({ error: "Course Offering not found" }, { status: 404 });
-        }
-
-        if (offering.fee <= 0) {
-            return NextResponse.json({ error: "This course is free" }, { status: 400 });
+        if (sessionId) {
+            // Semantic Fee Payment
+            const academicSession = await prisma.academicSession.findUnique({
+                where: { id: sessionId },
+            });
+            if (!academicSession) {
+                return NextResponse.json({ error: "Session not found" }, { status: 404 });
+            }
+            amount = academicSession.semesterFee;
+            notes.sessionId = sessionId;
+            paymentType = "SEMESTER_FEE";
+        } else if (courseOfferingId) {
+            // Course Fee Payment
+            const offering = await prisma.courseOffering.findUnique({
+                where: { id: courseOfferingId },
+            });
+            if (!offering) {
+                return NextResponse.json({ error: "Course Offering not found" }, { status: 404 });
+            }
+            if (offering.fee <= 0) {
+                return NextResponse.json({ error: "This course is free" }, { status: 400 });
+            }
+            amount = offering.fee;
+            notes.courseOfferingId = courseOfferingId;
         }
 
         const options = {
-            amount: offering.fee * 100, // amount in the smallest currency unit
+            amount: amount * 100, // amount in the smallest currency unit
             currency: "INR",
             receipt: `receipt_${Date.now()}`,
-            notes: {
-                studentId: student.id,
-                courseOfferingId: offering.id,
-            },
+            notes: notes,
         };
 
         const order = await razorpay.orders.create(options);
@@ -56,12 +72,14 @@ export async function POST(req: NextRequest) {
         // Save PENDING payment order to database
         await prisma.payment.create({
             data: {
-                amount: offering.fee,
+                amount: amount,
                 currency: "INR",
                 status: "PENDING",
+                type: paymentType,
                 razorpayOrderId: order.id,
                 studentId: student.id,
-                courseOfferingId: offering.id,
+                courseOfferingId: courseOfferingId || undefined,
+                sessionId: sessionId || undefined,
             },
         });
 

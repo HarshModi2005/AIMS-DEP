@@ -13,7 +13,8 @@ import {
     TrendingUp,
     UserCheck,
     FileText,
-    AlertCircle
+    AlertCircle,
+    CreditCard
 } from "lucide-react";
 
 const adminModules = [
@@ -42,10 +43,18 @@ const adminModules = [
         stats: { label: "Current Session", value: "2025-II" },
     },
     {
+        title: "Fee Management",
+        description: "Check student fee status and payment history",
+        icon: CreditCard,
+        href: "/admin/fees",
+        color: "from-indigo-500 to-violet-500",
+        stats: { label: "Pending Dues", value: "12" }, // Placeholder
+    },
+    {
         title: "Feedback Cycles",
         description: "Create and manage feedback cycles and questions",
         icon: MessageSquare,
-        href: "/admin/feedback",
+        href: "/admin/feedback-cycles",
         color: "from-purple-500 to-pink-500",
         stats: { label: "Active Cycles", value: "1" },
     },

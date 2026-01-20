@@ -166,12 +166,53 @@ model AcademicSession {
   academicDates   AcademicDate[]
   semesterRecords SemesterRecord[]
   slotCourses     SlotCourse[]
+  payments        Payment[]      // Relation to payments (semester fees)
+  semesterFee     Int            @default(50000) // Default semester fee
 }
 
 enum SessionType {
   ODD    // July - December (I)
   EVEN   // January - May (II)
   SUMMER // May - July (S)
+}
+
+// ... (omitting irrelevant models) ...
+
+model Payment {
+  id                String         @id @default(cuid())
+  amount            Int
+  currency          String         @default("INR")
+  status            PaymentStatus  @default(PENDING)
+  type              PaymentType    @default(COURSE_FEE)
+
+  razorpayOrderId   String         @unique
+  razorpayPaymentId String?        @unique
+  razorpaySignature String?
+
+  studentId         String
+  student           Student        @relation(fields: [studentId], references: [id])
+  
+  // Either Course Fee or Semester Fee
+  courseOfferingId  String?
+  courseOffering    CourseOffering? @relation(fields: [courseOfferingId], references: [id])
+  
+  sessionId         String?
+  session           AcademicSession? @relation(fields: [sessionId], references: [id])
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+enum PaymentType {
+  COURSE_FEE
+  SEMESTER_FEE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 model SemesterRecord {
@@ -648,29 +689,7 @@ model ClassSchedule {
   scheduleType ScheduleType   @default(LECTURE)
 }
 
-model Payment {
-  id                String         @id @default(cuid())
-  amount            Int
-  currency          String         @default("INR")
-  status            PaymentStatus  @default(PENDING)
-  razorpayOrderId   String         @unique
-  razorpayPaymentId String?        @unique
-  razorpaySignature String?
 
-  studentId         String
-  student           Student        @relation(fields: [studentId], references: [id])
-  courseOfferingId  String
-  courseOffering    CourseOffering @relation(fields: [courseOfferingId], references: [id])
-
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-}
 
 enum DayOfWeek {
   MONDAY

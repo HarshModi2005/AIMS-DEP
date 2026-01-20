@@ -11,21 +11,25 @@ declare global {
 }
 
 interface RazorpayButtonProps {
-    courseOfferingId: string;
+    courseOfferingId?: string;
+    sessionId?: string;
     amount: number; // in rupees
     onSuccess?: () => void;
     userEmail?: string;
     userName?: string;
     disabled?: boolean;
+    label?: string;
 }
 
 export default function RazorpayButton({
     courseOfferingId,
+    sessionId,
     amount,
     onSuccess,
     userEmail,
     userName,
-    disabled
+    disabled,
+    label,
 }: RazorpayButtonProps) {
     const [loading, setLoading] = useState(false);
 
@@ -36,7 +40,7 @@ export default function RazorpayButton({
             // 1. Create Order
             const res = await fetch("/api/payments/create-order", {
                 method: "POST",
-                body: JSON.stringify({ courseOfferingId }),
+                body: JSON.stringify({ courseOfferingId, sessionId }),
             });
 
             if (!res.ok) {
@@ -54,7 +58,7 @@ export default function RazorpayButton({
                 amount: order.amount,
                 currency: order.currency,
                 name: "AIMS Portal",
-                description: "Course Enrollment Fee",
+                description: sessionId ? "Semester Fee Payment" : "Course Enrollment Fee",
                 order_id: order.id,
                 handler: async function (response: any) {
                     // 3. Verify Payment
@@ -111,7 +115,7 @@ export default function RazorpayButton({
                 src="https://checkout.razorpay.com/v1/checkout.js"
             />
             <Button onClick={handlePayment} disabled={loading || disabled}>
-                {loading ? "Processing..." : `Pay ₹${amount}`}
+                {loading ? "Processing..." : label || `Pay ₹${amount}`}
             </Button>
         </>
     );
