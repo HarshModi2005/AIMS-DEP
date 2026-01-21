@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 // Helper to wrap pdf2json in a promise
 function parsePdfBuffer(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser(this, 1); // 1 = text content only
+        const pdfParser = new PDFParser(null, true); // 1 = text content only
 
         pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
         pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
