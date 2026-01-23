@@ -27,6 +27,14 @@ const adminModules = [
         stats: { label: "Total Users", value: "2,450" },
     },
     {
+        title: "Advisor Management",
+        description: "Assign faculty advisors to batches",
+        icon: UserCheck,
+        href: "/admin/assign-advisors",
+        color: "from-purple-500 to-indigo-500",
+        stats: { label: "Assigned", value: "Check" },
+    },
+    {
         title: "Course Management",
         description: "Create and manage courses, offerings, and slots",
         icon: BookOpen,

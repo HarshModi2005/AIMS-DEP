@@ -102,10 +102,23 @@ async function main() {
         },
     });
 
+    const advisorUser = await prisma.user.upsert({
+        where: { email: "fa.cse.2023@iitrpr.ac.in" },
+        update: {},
+        create: {
+            email: "fa.cse.2023@iitrpr.ac.in",
+            rollNumber: "FAC_ADV_001",
+            firstName: "Faculty",
+            lastName: "Advisor",
+            role: "FACULTY_ADVISOR",
+            password: passwordHash,
+        },
+    });
+
     // 3. Create Profiles
     console.log("Creating Profiles...");
 
-    await prisma.student.upsert({
+    const studentProfile1 = await prisma.student.upsert({
         where: { userId: studentUser1.id },
         update: {},
         create: {
@@ -122,7 +135,7 @@ async function main() {
         },
     });
 
-    await prisma.student.upsert({
+    const studentProfile2 = await prisma.student.upsert({
         where: { userId: studentUser2.id },
         update: {},
         create: {
@@ -158,6 +171,16 @@ async function main() {
             department: "Computer Science and Engineering",
             designation: Designation.ASSOCIATE_PROFESSOR,
             specialization: "Social Networks, Algorithms",
+        },
+    });
+
+    await prisma.facultyAdvisor.upsert({
+        where: { department_batchYear: { department: "Computer Science and Engineering", batchYear: 2023 } },
+        update: {},
+        create: {
+            userId: advisorUser.id,
+            department: "Computer Science and Engineering",
+            batchYear: 2023,
         },
     });
 
@@ -330,6 +353,35 @@ async function main() {
             offeringId: offeringCS303.id,
             facultyId: facProfile1.id,
             isPrimary: true, // Satyam teaches two courses
+        },
+    });
+
+    // 6.5 Create Enrollments
+    console.log("Creating Enrollments...");
+
+    // Student 1 (Harsh) in CS301 -> PENDING_ADVISOR (Instructor Approved)
+    await prisma.enrollment.upsert({
+        where: { studentId_courseOfferingId: { studentId: studentProfile1.id, courseOfferingId: offeringCS301.id } },
+        update: {},
+        create: {
+            studentId: studentProfile1.id,
+            courseOfferingId: offeringCS301.id,
+            enrollmentType: "CREDIT",
+            enrollmentStatus: "PENDING_ADVISOR",
+            courseCategory: "PC",
+        },
+    });
+
+    // Student 2 (Rohan) in CS303 -> PENDING (Waiting for Instructor)
+    await prisma.enrollment.upsert({
+        where: { studentId_courseOfferingId: { studentId: studentProfile2.id, courseOfferingId: offeringCS303.id } },
+        update: {},
+        create: {
+            studentId: studentProfile2.id,
+            courseOfferingId: offeringCS303.id,
+            enrollmentType: "CREDIT",
+            enrollmentStatus: "PENDING",
+            courseCategory: "PC",
         },
     });
 

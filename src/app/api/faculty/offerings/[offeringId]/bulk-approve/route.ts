@@ -145,7 +145,7 @@ export async function POST(
                     id: { in: enrollmentIds },
                 },
                 data: {
-                    enrollmentStatus: "ENROLLED",
+                    enrollmentStatus: "PENDING_ADVISOR",
                 },
             }),
             prisma.courseOffering.update({
