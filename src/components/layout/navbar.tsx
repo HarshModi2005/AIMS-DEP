@@ -40,16 +40,6 @@ interface NavItem {
 // Student-specific nav items
 const studentNavItems: NavItem[] = [
     {
-        label: "Academic Info",
-        href: "/academic-info",
-        icon: Calendar,
-        roles: ["STUDENT"],
-        children: [
-            { label: "Academic Calendar", href: "/academic-info" },
-            { label: "Important Dates", href: "/academic-info" },
-        ],
-    },
-    {
         label: "Courses",
         href: "/courses/enrollment",
         icon: BookOpen,
@@ -102,12 +92,6 @@ const adminNavItems: NavItem[] = [
         label: "Dashboard",
         href: "/admin",
         icon: LayoutDashboard,
-        roles: ["ADMIN", "SUPER_ADMIN"],
-    },
-    {
-        label: "Academic Info",
-        href: "/academic-info",
-        icon: Calendar,
         roles: ["ADMIN", "SUPER_ADMIN"],
     },
     {

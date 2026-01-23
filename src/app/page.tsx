@@ -18,7 +18,6 @@ const quickActions = [
   { label: "Student Record", href: "/student-record", icon: GraduationCap, color: "from-blue-500 to-cyan-500" },
   { label: "Course Enrollment", href: "/courses/enrollment", icon: BookOpen, color: "from-emerald-500 to-teal-500" },
   { label: "Course Feedback", href: "/feedback", icon: MessageSquare, color: "from-purple-500 to-pink-500" },
-  { label: "Academic Calendar", href: "/academic-info", icon: Calendar, color: "from-amber-500 to-orange-500" },
 ];
 
 export default function Home() {

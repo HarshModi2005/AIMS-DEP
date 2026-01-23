@@ -41,13 +41,6 @@ const quickActions = [
         gradient: "from-pink-500 to-rose-600",
     },
     {
-        title: "Academic Calendar",
-        description: "View important academic dates and events",
-        href: "/academic-info",
-        icon: Calendar,
-        gradient: "from-amber-500 to-orange-600",
-    },
-    {
         title: "Documents",
         description: "Access and download your academic documents",
         href: "/student-record?tab=documents",

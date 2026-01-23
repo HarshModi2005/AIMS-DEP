@@ -52,7 +52,7 @@ const helpTopics = [
 
 const quickLinks = [
     { title: "IIT Ropar Main Website", href: "https://www.iitrpr.ac.in", external: true },
-    { title: "Academic Calendar", href: "/academic-info", external: false },
+    { title: "Student Record", href: "/student-record", external: false },
     { title: "Course Enrollment", href: "/courses/enrollment", external: false },
 ];
 
