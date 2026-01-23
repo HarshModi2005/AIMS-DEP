@@ -34,6 +34,7 @@ model User {
   student  Student?
   faculty  Faculty?
   admin    Admin?
+  facultyAdvisor FacultyAdvisor?
 
   // Activity
   feedbacksGiven CourseFeedback[]
@@ -45,6 +46,7 @@ enum Role {
   FACULTY
   ADMIN
   SUPER_ADMIN
+  FACULTY_ADVISOR
 }
 
 // NextAuth required models
@@ -419,6 +421,8 @@ enum EnrollmentType {
 
 enum EnrollmentStatus {
   PENDING
+  PENDING_ADVISOR // Pending confirmation from Advisor (after Instructor approves)
+  ADVISOR_REJECTED // Rejected by Advisor
   ENROLLED
   WAITLISTED
   DROPPED
@@ -621,6 +625,22 @@ enum Designation {
   ASSISTANT_PROFESSOR
   VISITING_FACULTY
   ADJUNCT_FACULTY
+}
+
+// ============================================
+// FACULTY ADVISOR
+// ============================================
+
+model FacultyAdvisor {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  
+  department  String
+  batchYear   Int      // e.g., 2023
+  
+  @@unique([department, batchYear])
+  @@index([userId])
 }
 
 // ============================================

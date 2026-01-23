@@ -47,7 +47,19 @@ export default function LoginPage() {
                 setError("Invalid email or password");
                 setIsLoading(false);
             } else {
-                router.push("/");
+                // Check role and redirect
+                const res = await fetch("/api/auth/session");
+                const session = await res.json();
+
+                if (session?.user?.role === "FACULTY_ADVISOR") {
+                    router.push("/advisor");
+                } else if (session?.user?.role === "FACULTY") {
+                    router.push("/faculty");
+                } else if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
+                    router.push("/admin");
+                } else {
+                    router.push("/");
+                }
                 router.refresh();
             }
         } catch {

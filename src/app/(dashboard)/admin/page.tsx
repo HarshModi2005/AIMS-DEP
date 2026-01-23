@@ -1,3 +1,4 @@
+
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -24,22 +25,19 @@ export default async function AdminDashboard() {
         redirect("/");
     }
 
-    // Fetch actual student count from database
+    // Fetch actual database stats
     const totalStudents = await prisma.user.count({
-        where: {
-            role: "STUDENT"
-        }
+        where: { role: "STUDENT" }
     });
 
-    // Fetch total user count (all roles)
     const totalUsers = await prisma.user.count();
 
-    // Fetch active feedback cycles count
     const activeFeedbackCycles = await prisma.feedbackCycle.count({
-        where: {
-            isActive: true
-        }
+        where: { isActive: true }
     });
+
+    // Count assigned advisors
+    const assignedAdvisors = await prisma.facultyAdvisor.count();
 
     const quickStats = [
         { label: "Total Students", value: totalStudents.toString(), icon: Users, change: "+12%", trend: "up" },
@@ -56,6 +54,14 @@ export default async function AdminDashboard() {
             href: "/admin/users",
             color: "from-blue-500 to-cyan-500",
             stats: { label: "Total Users", value: totalUsers.toString() },
+        },
+        {
+            title: "Advisor Management",
+            description: "Assign faculty advisors to batches",
+            icon: UserCheck,
+            href: "/admin/assign-advisors",
+            color: "from-purple-500 to-indigo-500",
+            stats: { label: "Assigned", value: assignedAdvisors.toString() },
         },
         {
             title: "Course Management",
@@ -87,7 +93,7 @@ export default async function AdminDashboard() {
             icon: MessageSquare,
             href: "/admin/feedback-cycles",
             color: "from-purple-500 to-pink-500",
-            stats: { label: "Active Cycles", value: "1" },
+            stats: { label: "Active Cycles", value: activeFeedbackCycles.toString() },
         },
         {
             title: "Reports & Analytics",
