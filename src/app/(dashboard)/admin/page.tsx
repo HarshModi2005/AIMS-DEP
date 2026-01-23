@@ -1,8 +1,8 @@
-"use client";
 
-import { useSession } from "next-auth/react";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import prisma from "@/lib/db";
 import {
     Users,
     BookOpen,
@@ -17,87 +17,101 @@ import {
     CreditCard
 } from "lucide-react";
 
-const adminModules = [
-    {
-        title: "User Management",
-        description: "Manage students, faculty, and admin accounts",
-        icon: Users,
-        href: "/admin/users",
-        color: "from-blue-500 to-cyan-500",
-        stats: { label: "Total Users", value: "2,450" },
-    },
-    {
-        title: "Advisor Management",
-        description: "Assign faculty advisors to batches",
-        icon: UserCheck,
-        href: "/admin/assign-advisors",
-        color: "from-purple-500 to-indigo-500",
-        stats: { label: "Assigned", value: "Check" },
-    },
-    {
-        title: "Course Management",
-        description: "Create and manage courses, offerings, and slots",
-        icon: BookOpen,
-        href: "/admin/courses",
-        color: "from-emerald-500 to-teal-500",
-        stats: { label: "Active Courses", value: "156" },
-    },
-    {
-        title: "Session Management",
-        description: "Academic sessions and calendar events",
-        icon: Calendar,
-        href: "/admin/sessions",
-        color: "from-amber-500 to-orange-500",
-        stats: { label: "Current Session", value: "2025-II" },
-    },
-    {
-        title: "Fee Management",
-        description: "Check student fee status and payment history",
-        icon: CreditCard,
-        href: "/admin/fees",
-        color: "from-indigo-500 to-violet-500",
-        stats: { label: "Pending Dues", value: "12" }, // Placeholder
-    },
-    {
-        title: "Feedback Cycles",
-        description: "Create and manage feedback cycles and questions",
-        icon: MessageSquare,
-        href: "/admin/feedback-cycles",
-        color: "from-purple-500 to-pink-500",
-        stats: { label: "Active Cycles", value: "1" },
-    },
-    {
-        title: "Reports & Analytics",
-        description: "View enrollment statistics and feedback reports",
-        icon: BarChart3,
-        href: "/",
-        color: "from-rose-500 to-red-500",
-        stats: { label: "Reports Generated", value: "24" },
-    },
-    {
-        title: "System Settings",
-        description: "Configure system parameters and permissions",
-        icon: Settings,
-        href: "/admin",
-        color: "from-zinc-500 to-slate-500",
-        stats: { label: "Last Updated", value: "Today" },
-    },
-];
-
-const quickStats = [
-    { label: "Total Students", value: "1,842", icon: Users, change: "+12%", trend: "up" },
-    { label: "Active Enrollments", value: "8,456", icon: UserCheck, change: "+8%", trend: "up" },
-    { label: "Pending Feedback", value: "234", icon: MessageSquare, change: "-15%", trend: "down" },
-    { label: "Documents Pending", value: "12", icon: FileText, change: "+2", trend: "up" },
-];
-
-export default function AdminDashboard() {
-    const { data: session } = useSession();
+export default async function AdminDashboard() {
+    const session = await auth();
 
     // Redirect non-admin users
-    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
+    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "SUPER_ADMIN")) {
         redirect("/");
     }
+
+    // Fetch actual database stats
+    const totalStudents = await prisma.user.count({
+        where: { role: "STUDENT" }
+    });
+
+    const totalUsers = await prisma.user.count();
+
+    const activeFeedbackCycles = await prisma.feedbackCycle.count({
+        where: { isActive: true }
+    });
+
+    // Count assigned advisors
+    const assignedAdvisors = await prisma.facultyAdvisor.count();
+
+    const quickStats = [
+        { label: "Total Students", value: totalStudents.toString(), icon: Users, change: "+12%", trend: "up" },
+        { label: "Total Users", value: totalUsers.toString(), icon: UserCheck, change: "+8%", trend: "up" },
+        { label: "Active Feedback Cycles", value: activeFeedbackCycles.toString(), icon: MessageSquare, change: "-15%", trend: "down" },
+        { label: "Documents Pending", value: "12", icon: FileText, change: "+2", trend: "up" },
+    ];
+
+    const adminModules = [
+        {
+            title: "User Management",
+            description: "Manage students, faculty, and admin accounts",
+            icon: Users,
+            href: "/admin/users",
+            color: "from-blue-500 to-cyan-500",
+            stats: { label: "Total Users", value: totalUsers.toString() },
+        },
+        {
+            title: "Advisor Management",
+            description: "Assign faculty advisors to batches",
+            icon: UserCheck,
+            href: "/admin/assign-advisors",
+            color: "from-purple-500 to-indigo-500",
+            stats: { label: "Assigned", value: assignedAdvisors.toString() },
+        },
+        {
+            title: "Course Management",
+            description: "Create and manage courses, offerings, and slots",
+            icon: BookOpen,
+            href: "/admin/courses",
+            color: "from-emerald-500 to-teal-500",
+            stats: { label: "Active Courses", value: "156" },
+        },
+        {
+            title: "Session Management",
+            description: "Academic sessions and calendar events",
+            icon: Calendar,
+            href: "/admin/sessions",
+            color: "from-amber-500 to-orange-500",
+            stats: { label: "Current Session", value: "2025-II" },
+        },
+        {
+            title: "Fee Management",
+            description: "Check student fee status and payment history",
+            icon: CreditCard,
+            href: "/admin/fees",
+            color: "from-indigo-500 to-violet-500",
+            stats: { label: "Pending Dues", value: "12" }, // Placeholder
+        },
+        {
+            title: "Feedback Cycles",
+            description: "Create and manage feedback cycles and questions",
+            icon: MessageSquare,
+            href: "/admin/feedback-cycles",
+            color: "from-purple-500 to-pink-500",
+            stats: { label: "Active Cycles", value: activeFeedbackCycles.toString() },
+        },
+        {
+            title: "Reports & Analytics",
+            description: "View enrollment statistics and feedback reports",
+            icon: BarChart3,
+            href: "/admin/reports",
+            color: "from-rose-500 to-red-500",
+            stats: { label: "Reports Generated", value: "24" },
+        },
+        {
+            title: "System Settings",
+            description: "Configure system parameters and permissions",
+            icon: Settings,
+            href: "/admin/settings",
+            color: "from-zinc-500 to-slate-500",
+            stats: { label: "Last Updated", value: "Today" },
+        },
+    ];
 
     return (
         <div className="min-h-screen bg-zinc-950 text-white p-6">
