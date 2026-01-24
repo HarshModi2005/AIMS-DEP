@@ -18,6 +18,7 @@ import {
     User,
     Users,
     CreditCard,
+    FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,12 @@ interface NavItem {
 
 // Student-specific nav items
 const studentNavItems: NavItem[] = [
+    {
+        label: "Student Record",
+        href: "/student-record",
+        icon: FileText,
+        roles: ["STUDENT"],
+    },
     {
         label: "Courses",
         href: "/courses/enrollment",
