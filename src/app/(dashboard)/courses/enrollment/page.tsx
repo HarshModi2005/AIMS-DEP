@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Search, Filter, X, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RazorpayButton from "@/components/payments/RazorpayButton";
+import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface CourseForEnrollment {
     id: string;
@@ -53,6 +54,8 @@ export default function EnrollmentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [confirmationOpen, setConfirmationOpen] = useState(false);
+    const [courseToEnroll, setCourseToEnroll] = useState<CourseForEnrollment | null>(null);
 
     // Fetch courses
     useEffect(() => {
@@ -90,7 +93,14 @@ export default function EnrollmentPage() {
         return matchesStatus;
     });
 
-    const handleEnroll = async (courseId: string) => {
+    const initiateEnrollment = (course: CourseForEnrollment) => {
+        setCourseToEnroll(course);
+        setConfirmationOpen(true);
+        setError(null);
+        setSuccessMessage(null);
+    };
+
+    const handlePaymentSuccess = async (courseId: string) => {
         setEnrollingCourseId(courseId);
         setError(null);
         setSuccessMessage(null);
@@ -120,6 +130,50 @@ export default function EnrollmentPage() {
             );
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to enroll");
+        } finally {
+            setEnrollingCourseId(null);
+        }
+    };
+
+    const handleConfirmEnrollment = async () => {
+        if (!courseToEnroll) return;
+
+        const courseId = courseToEnroll.id;
+        setEnrollingCourseId(courseId); // Used for loading state
+
+        try {
+            const response = await fetch("/api/enrollments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ courseOfferingId: courseId }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to enroll");
+            }
+
+            setSuccessMessage(`Successfully requested enrollment for ${courseToEnroll.code}: ${courseToEnroll.name}. Awaiting faculty approval.`);
+
+            // Update the course in the list - mark as pending, not enrolled
+            setCourses((prev) =>
+                prev.map((c) =>
+                    c.id === courseId
+                        ? { ...c, isPending: true }
+                        : c
+                )
+            );
+
+            // Close modal on success
+            setConfirmationOpen(false);
+            setCourseToEnroll(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to enroll");
+            // We keep the modal open on error so they can read it? Or close it and show error on page?
+            // The error is shown on the page based on `error` state.
+            // Let's close modal so they can see the error on the page.
+            setConfirmationOpen(false);
         } finally {
             setEnrollingCourseId(null);
         }
@@ -349,12 +403,12 @@ export default function EnrollmentPage() {
                                                     amount={course.fee}
                                                     userEmail={session?.user?.email || ""}
                                                     userName={session?.user?.name || ""}
-                                                    onSuccess={() => handleEnroll(course.id)}
+                                                    onSuccess={() => handlePaymentSuccess(course.id)}
                                                     disabled={course.status !== "OPEN_FOR_ENROLLMENT"}
                                                 />
                                             ) : (
                                                 <button
-                                                    onClick={() => handleEnroll(course.id)}
+                                                    onClick={() => initiateEnrollment(course)}
                                                     disabled={course.isEnrolled || course.isPending || course.status !== "OPEN_FOR_ENROLLMENT" || enrollingCourseId === course.id}
                                                     className={cn(
                                                         "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
@@ -397,6 +451,28 @@ export default function EnrollmentPage() {
                     )}
                 </div>
             </div>
-        </div>
+
+            <ConfirmationModal
+                isOpen={confirmationOpen}
+                onClose={() => !enrollingCourseId && setConfirmationOpen(false)}
+                onConfirm={handleConfirmEnrollment}
+                title="Confirm Enrollment"
+                description={
+                    courseToEnroll ? (
+                        <div className="space-y-2">
+                            <p>Are you sure you want to enroll in <strong>{courseToEnroll.code}: {courseToEnroll.name}</strong>?</p>
+                            <p className="text-sm text-zinc-500">
+                                This will send a request to the faculty advisor for approval.
+                                {courseToEnroll.fee > 0 && " Payment will be required after approval."}
+                            </p>
+                        </div>
+                    ) : "Are you sure you want to enroll?"
+                }
+                confirmText="Yes, Enroll Me"
+                cancelText="No, Cancel"
+                isLoading={!!enrollingCourseId}
+                variant="default"
+            />
+        </div >
     );
 }

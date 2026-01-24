@@ -1,0 +1,17 @@
+CWD: E:\Projects\AIMS-DEP
+Env Path: E:\Projects\AIMS-DEP\.env
+File exists: true
+File length: 694
+First 20 chars hex: 44415441424153455f55524c3d22706f73746772
+Line 0 failed match: DATABASE_U... (hex: 4441544142)
+Line 1 failed match: # NextAuth... (hex: 23204e6578)
+Line 2 failed match: AUTH_SECRE... (hex: 415554485f)
+Line 3 failed match: AUTH_URL="... (hex: 415554485f)
+Line 5 failed match: # Google O... (hex: 2320476f6f)
+Line 6 failed match: GOOGLE_CLI... (hex: 474f4f474c)
+Line 7 failed match: GOOGLE_CLI... (hex: 474f4f474c)
+Line 8 failed match: DIRECT_URL... (hex: 4449524543)
+Line 10 failed match: # Razorpay... (hex: 232052617a)
+Line 11 failed match: NEXT_PUBLI... (hex: 4e4558545f)
+Line 12 failed match: RAZORPAY_K... (hex: 52415a4f52)
+Loaded DATABASE_URL (masked): undefined
