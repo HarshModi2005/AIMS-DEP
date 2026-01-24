@@ -22,7 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-type Role = "STUDENT" | "FACULTY" | "ADMIN" | "SUPER_ADMIN";
+type Role = "STUDENT" | "FACULTY" | "ADMIN" | "SUPER_ADMIN" | "FACULTY_ADVISOR";
 
 interface NavChild {
     label: string;
@@ -84,6 +84,22 @@ const facultyNavItems: NavItem[] = [
         roles: ["FACULTY"],
     },
 
+];
+
+// Advisor-specific nav items
+const advisorNavItems: NavItem[] = [
+    {
+        label: "View Students",
+        href: "/advisor",
+        icon: Users,
+        roles: ["FACULTY_ADVISOR"],
+    },
+    {
+        label: "Manage Enrollments",
+        href: "/advisor/enrollments",
+        icon: GraduationCap,
+        roles: ["FACULTY_ADVISOR"],
+    },
 ];
 
 // Admin-specific nav items
@@ -152,6 +168,9 @@ export function Navbar() {
 
     // Get nav items based on role
     const getNavItems = (): NavItem[] => {
+        if (userRole === "FACULTY_ADVISOR") {
+            return [...advisorNavItems, ...commonNavItems];
+        }
         if (userRole === "FACULTY") {
             return [...facultyNavItems, ...commonNavItems];
         }
@@ -185,7 +204,7 @@ export function Navbar() {
     }, [session, userRole]);
 
     // Determine home link based on role
-    const homeHref = userRole === "FACULTY" ? "/faculty" : userRole === "ADMIN" || userRole === "SUPER_ADMIN" ? "/admin" : "/";
+    const homeHref = userRole === "FACULTY_ADVISOR" ? "/advisor" : userRole === "FACULTY" ? "/faculty" : userRole === "ADMIN" || userRole === "SUPER_ADMIN" ? "/admin" : "/";
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-zinc-950/80 backdrop-blur-lg">
@@ -274,13 +293,13 @@ export function Navbar() {
                                                 Admin Panel
                                             </Link>
                                         )}
-                                        {session.user.role === "FACULTY" && (
+                                        {(session.user.role === "FACULTY" || session.user.role === "FACULTY_ADVISOR") && (
                                             <Link
-                                                href="/faculty"
+                                                href={session.user.role === "FACULTY_ADVISOR" ? "/advisor" : "/faculty"}
                                                 className="flex items-center gap-2 px-4 py-2 text-sm text-cyan-400 hover:text-cyan-300 hover:bg-white/5"
                                             >
                                                 <BookOpen className="h-4 w-4" />
-                                                Faculty Panel
+                                                {session.user.role === "FACULTY_ADVISOR" ? "Advisor Panel" : "Faculty Panel"}
                                             </Link>
                                         )}
                                         <Link

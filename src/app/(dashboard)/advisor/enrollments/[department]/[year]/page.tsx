@@ -14,6 +14,7 @@ interface Enrollment {
     courseName: string;
     status: string;
     credits: number;
+    requestedAt: string;
 }
 
 export default function BatchEnrollmentsPage({ params }: { params: Promise<{ department: string; year: string }> }) {
@@ -26,9 +27,10 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [processing, setProcessing] = useState(false);
 
-    // Filters
+    // Filters and Sorting
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("PENDING_ADVISOR");
+    const [sortBy, setSortBy] = useState<"rollNumber" | "requestTime">("requestTime");
 
     const fetchEnrollments = async () => {
         setLoading(true);
@@ -51,7 +53,7 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
     }, [department, year]);
 
     const filteredEnrollments = useMemo(() => {
-        return enrollments.filter(e => {
+        let filtered = enrollments.filter(e => {
             const matchesSearch =
                 e.courseCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 e.courseName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -62,7 +64,16 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
 
             return matchesSearch && matchesStatus;
         });
-    }, [enrollments, searchQuery, statusFilter]);
+
+        // Sorting
+        return [...filtered].sort((a, b) => {
+            if (sortBy === "rollNumber") {
+                return a.rollNumber.localeCompare(b.rollNumber);
+            } else {
+                return new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime();
+            }
+        });
+    }, [enrollments, searchQuery, statusFilter, sortBy]);
 
     const pendingCount = enrollments.filter(e => e.status === "PENDING_ADVISOR").length;
 
@@ -84,9 +95,9 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
         }
     };
 
-    const handleAction = async (action: "APPROVE" | "REJECT") => {
-        if (selectedIds.size === 0) return;
-        if (!confirm(`Are you sure you want to ${action} ${selectedIds.size} requests?`)) return;
+    const handleAction = async (ids: string[], action: "APPROVE" | "REJECT") => {
+        if (ids.length === 0) return;
+        if (!confirm(`Are you sure you want to ${action} ${ids.length} request(s)?`)) return;
 
         setProcessing(true);
         try {
@@ -94,7 +105,7 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    enrollmentIds: Array.from(selectedIds),
+                    enrollmentIds: ids,
                     action
                 })
             });
@@ -182,6 +193,20 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
                             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
                         </div>
 
+                        {/* Sorting */}
+                        <div className="relative">
+                            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as any)}
+                                className="pl-10 pr-8 py-2 rounded-lg bg-zinc-800 border border-white/10 focus:border-indigo-500 focus:outline-none text-sm appearance-none cursor-pointer"
+                            >
+                                <option value="requestTime">Sort by Request Time</option>
+                                <option value="rollNumber">Sort by Roll Number</option>
+                            </select>
+                            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+                        </div>
+
                         {/* Export */}
                         <button
                             onClick={handleExport}
@@ -227,7 +252,7 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
                         </span>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => handleAction("REJECT")}
+                                onClick={() => handleAction(Array.from(selectedIds), "REJECT")}
                                 disabled={processing}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium transition-colors"
                             >
@@ -235,7 +260,7 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
                                 Reject Selected
                             </button>
                             <button
-                                onClick={() => handleAction("APPROVE")}
+                                onClick={() => handleAction(Array.from(selectedIds), "APPROVE")}
                                 disabled={processing}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-medium transition-colors"
                             >
@@ -294,20 +319,36 @@ export default function BatchEnrollmentsPage({ params }: { params: Promise<{ dep
                                         </td>
                                         <td className="py-3 px-4 text-center text-zinc-400">{e.credits}</td>
                                         <td className="py-3 px-4 text-center">
-                                            {e.status === "PENDING_ADVISOR" && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-medium border border-amber-500/20">
-                                                    Pending Review
-                                                </span>
-                                            )}
-                                            {e.status === "ENROLLED" && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
-                                                    Approved
-                                                </span>
-                                            )}
-                                            {e.status === "ADVISOR_REJECTED" && (
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-medium border border-red-500/20">
-                                                    Rejected
-                                                </span>
+                                            {e.status === "PENDING_ADVISOR" ? (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleAction([e.id], "APPROVE")}
+                                                        className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                                        title="Approve"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAction([e.id], "REJECT")}
+                                                        className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                                        title="Reject"
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {e.status === "ENROLLED" && (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
+                                                            Approved
+                                                        </span>
+                                                    )}
+                                                    {e.status === "ADVISOR_REJECTED" && (
+                                                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-xs font-medium border border-red-500/20">
+                                                            Rejected
+                                                        </span>
+                                                    )}
+                                                </>
                                             )}
                                         </td>
                                     </tr>

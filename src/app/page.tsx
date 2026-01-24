@@ -86,6 +86,10 @@ export default function Home() {
     );
   }
   // Redirect based on role
+  if (session.user?.role === "FACULTY_ADVISOR") {
+    redirect("/advisor");
+  }
+
   if (session.user?.role === "FACULTY") {
     redirect("/faculty");
   }

@@ -131,9 +131,13 @@ export default function StudentManagementPage() {
 
     // Separate pending and enrolled
     const pendingStudents = filteredStudents.filter((s) => s.enrollmentStatus === "PENDING");
-    const enrolledStudents = filteredStudents.filter((s) => s.enrollmentStatus === "ENROLLED");
+    const enrolledStudents = filteredStudents.filter(
+        (s) => s.enrollmentStatus === "ENROLLED" || s.enrollmentStatus === "PENDING_ADVISOR"
+    );
     const otherStudents = filteredStudents.filter(
-        (s) => s.enrollmentStatus !== "PENDING" && s.enrollmentStatus !== "ENROLLED"
+        (s) => s.enrollmentStatus !== "PENDING" &&
+            s.enrollmentStatus !== "ENROLLED" &&
+            s.enrollmentStatus !== "PENDING_ADVISOR"
     );
 
     // Handle individual approval/rejection
@@ -155,7 +159,7 @@ export default function StudentManagementPage() {
             setStudents((prev) =>
                 prev.map((s) =>
                     s.enrollmentId === enrollmentId
-                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "ENROLLED" : "DROPPED" }
+                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "DROPPED" }
                         : s
                 )
             );
@@ -657,9 +661,15 @@ export default function StudentManagementPage() {
                                                 {student.enrollmentType.toLowerCase()}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-400">
-                                                    Enrolled
-                                                </span>
+                                                {student.enrollmentStatus === "ENROLLED" ? (
+                                                    <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-400 font-medium">
+                                                        Enrolled
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center rounded-full bg-amber-500/20 px-2 py-1 text-xs text-amber-400 font-medium whitespace-nowrap">
+                                                        Pending Advisor Approval
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
