@@ -64,7 +64,8 @@ export const GET = async (req: Request) => {
             courseCode: e.courseOffering.course.courseCode,
             courseName: e.courseOffering.course.courseName,
             status: e.enrollmentStatus,
-            credits: e.courseOffering.course.credits
+            credits: e.courseOffering.course.credits,
+            requestedAt: e.enrolledAt.toISOString()
         }));
 
         return NextResponse.json({ enrollments: formatted });
