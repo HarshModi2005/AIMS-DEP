@@ -21,6 +21,7 @@ import {
     Trash2,
     Save,
     RotateCcw,
+    Upload,
 } from "lucide-react";
 import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
 import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
@@ -40,6 +41,7 @@ interface Student {
     enrollmentType: string;
     enrollmentStatus: string;
     requestedAt: string;
+    grade?: string;
 }
 
 interface OfferingData {
@@ -856,9 +858,16 @@ export default function StudentManagementPage() {
                         <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-xl border border-white/10">
                             <div>
                                 <h3 className="text-lg font-semibold text-zinc-200">Grade Entry</h3>
-                                <p className="text-zinc-500 text-sm">Enter grades for enrolled students. Unsaved changes will be lost.</p>
+                                <p className="text-zinc-500 text-sm">Enter grades manually or upload a file.</p>
                             </div>
                             <div className="flex gap-4">
+                                <Link
+                                    href={`/faculty/${offeringId}/grades`}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 transition-colors text-sm font-medium"
+                                >
+                                    <Upload className="h-4 w-4" />
+                                    Bulk Upload
+                                </Link>
                                 <button
                                     onClick={() => setGradeUpdates({})}
                                     className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 
+import { OfferingStatus } from "@prisma/client";
+
 // GET - Fetch all pending course offerings
 export async function GET(request: NextRequest) {
     try {
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
 
         const pendingOfferings = await prisma.courseOffering.findMany({
             where: {
-                status: "PENDING_APPROVAL",
+                status: OfferingStatus.PENDING_APPROVAL,
             },
             include: {
                 course: true,
