@@ -12,6 +12,7 @@ import {
     CheckCircle,
     XCircle,
     Loader2,
+    AlertTriangle,
     AlertCircle,
     Users,
     ChevronDown,
@@ -338,6 +339,7 @@ export default function StudentManagementPage() {
     const [bulkApproving, setBulkApproving] = useState(false);
     const [showBulkMenu, setShowBulkMenu] = useState(false);
     const [showBulkConfirm, setShowBulkConfirm] = useState<{ type: string; value?: string; count: number } | null>(null);
+    const [submissionStatus, setSubmissionStatus] = useState<{ isOpen: boolean; message: string } | null>(null);
 
     // Fetch data
     useEffect(() => {
@@ -356,6 +358,12 @@ export default function StudentManagementPage() {
                 }
                 setStudents(data.students);
                 setFilterOptions(data.filterOptions);
+
+                // Fetch submission status
+                const statusRes = await fetch(`/api/faculty/offerings/${offeringId}/submission-status`);
+                const statusData = await statusRes.json();
+                setSubmissionStatus(statusData);
+
             } catch (err) {
                 setError(err instanceof Error ? err.message : "Failed to load data");
             } finally {
@@ -855,19 +863,32 @@ export default function StudentManagementPage() {
                     </div>
                 ) : activeTab === "upload grades" ? (
                     <div className="space-y-6">
+
+                        {submissionStatus && !submissionStatus.isOpen && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-400 flex items-center gap-3">
+                                <AlertTriangle className="h-5 w-5" />
+                                <div>
+                                    <p className="font-semibold text-sm">Submission Restricted</p>
+                                    <p className="text-xs opacity-90">{submissionStatus.message}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-xl border border-white/10">
                             <div>
                                 <h3 className="text-lg font-semibold text-zinc-200">Grade Entry</h3>
                                 <p className="text-zinc-500 text-sm">Enter grades manually or upload a file.</p>
                             </div>
                             <div className="flex gap-4">
-                                <Link
-                                    href={`/faculty/${offeringId}/grades`}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 transition-colors text-sm font-medium"
-                                >
-                                    <Upload className="h-4 w-4" />
-                                    Bulk Upload
-                                </Link>
+                                {submissionStatus?.isOpen && (
+                                    <Link
+                                        href={`/faculty/${offeringId}/grades`}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 transition-colors text-sm font-medium"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        Bulk Upload
+                                    </Link>
+                                )}
                                 <button
                                     onClick={() => setGradeUpdates({})}
                                     className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
@@ -879,7 +900,8 @@ export default function StudentManagementPage() {
                                     containerClassName="rounded-lg"
                                     as="button"
                                     onClick={saveGrades}
-                                    className="bg-zinc-900 text-emerald-400 flex items-center gap-2 px-6 py-2.5"
+                                    disabled={!submissionStatus?.isOpen}
+                                    className={`flex items-center gap-2 px-6 py-2.5 ${submissionStatus?.isOpen ? "bg-zinc-900 text-emerald-400" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}`}
                                 >
                                     {savingGrades ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     <span>Save Grades ({Object.keys(gradeUpdates).length})</span>
@@ -923,10 +945,11 @@ export default function StudentManagementPage() {
                                                     <Input
                                                         type="text"
                                                         maxLength={2}
-                                                        className="w-20 bg-zinc-950 border-zinc-800 uppercase text-center font-bold"
+                                                        className="w-20 bg-zinc-950 border-zinc-800 uppercase text-center font-bold disabled:opacity-50"
                                                         value={gradeUpdates[student.enrollmentId] ?? ""}
                                                         onChange={(e) => handleGradeChange(student.enrollmentId, e.target.value.toUpperCase())}
                                                         placeholder="-"
+                                                        disabled={!submissionStatus?.isOpen}
                                                     />
                                                 </td>
                                             </tr>

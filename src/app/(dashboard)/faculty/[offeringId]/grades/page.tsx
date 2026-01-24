@@ -24,8 +24,23 @@ export default function GradeUploadPage({ params }: { params: Promise<{ offering
     const [parsedData, setParsedData] = useState<GradeRow[]>([]);
     const [uploading, setUploading] = useState(false);
     const [validationReport, setValidationReport] = useState<any[]>([]);
+    const [submissionStatus, setSubmissionStatus] = useState<{ isOpen: boolean; message: string } | null>(null);
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            try {
+                const res = await fetch(`/api/faculty/offerings/${offeringId}/submission-status`);
+                const data = await res.json();
+                setSubmissionStatus(data);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        checkStatus();
+    }, [offeringId]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (submissionStatus && !submissionStatus.isOpen) return;
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
             setFile(selectedFile);
@@ -144,10 +159,22 @@ export default function GradeUploadPage({ params }: { params: Promise<{ offering
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Panel: Upload */}
                     <div className="lg:col-span-1 space-y-6">
+
+                        {submissionStatus && !submissionStatus.isOpen && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-amber-400 flex items-center gap-3">
+                                <AlertTriangle className="h-5 w-5" />
+                                <div>
+                                    <p className="font-semibold text-sm">Submission Restricted</p>
+                                    <p className="text-xs opacity-90">{submissionStatus.message}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-zinc-900 rounded-xl border border-white/10 p-6">
                             <div
-                                className="border-2 border-dashed border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center text-center hover:border-indigo-500/50 transition-colors cursor-pointer bg-zinc-900/50"
-                                onClick={() => fileInputRef.current?.click()}
+                                className={`border-2 border-dashed border-zinc-700 rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors bg-zinc-900/50 
+                                ${submissionStatus?.isOpen ? "hover:border-indigo-500/50 cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                                onClick={() => submissionStatus?.isOpen && fileInputRef.current?.click()}
                             >
                                 <input
                                     type="file"
