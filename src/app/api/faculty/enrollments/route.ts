@@ -163,14 +163,14 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        if (enrollment.enrollmentStatus !== "PENDING") {
-            return NextResponse.json(
-                { error: "This enrollment has already been processed" },
-                { status: 400 }
-            );
-        }
-
         if (action === "APPROVE") {
+            if (enrollment.enrollmentStatus !== "PENDING") {
+                return NextResponse.json(
+                    { error: "Only pending requests can be approved" },
+                    { status: 400 }
+                );
+            }
+
             // Check capacity before approving
             if (
                 enrollment.courseOffering.currentStrength >=
@@ -200,10 +200,26 @@ export async function PUT(request: NextRequest) {
             });
         } else {
             // Reject: Update status to DROPPED
-            await prisma.enrollment.update({
-                where: { id: enrollmentId },
-                data: { enrollmentStatus: "DROPPED" },
-            });
+            // If the student was already counting towards strength (PENDING_ADVISOR or ENROLLED), decrement it
+            const countsTowardsStrength = ["PENDING_ADVISOR", "ENROLLED"].includes(enrollment.enrollmentStatus);
+
+            if (countsTowardsStrength) {
+                await prisma.$transaction([
+                    prisma.enrollment.update({
+                        where: { id: enrollmentId },
+                        data: { enrollmentStatus: "DROPPED" },
+                    }),
+                    prisma.courseOffering.update({
+                        where: { id: enrollment.courseOfferingId },
+                        data: { currentStrength: { decrement: 1 } },
+                    }),
+                ]);
+            } else {
+                await prisma.enrollment.update({
+                    where: { id: enrollmentId },
+                    data: { enrollmentStatus: "DROPPED" },
+                });
+            }
 
             return NextResponse.json({
                 message: "Enrollment rejected",

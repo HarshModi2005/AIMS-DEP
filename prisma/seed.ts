@@ -34,12 +34,12 @@ async function main() {
     // 2. Create Users
     console.log("Creating Users...");
 
-    // Hash password (use hash for "password123")
-    const passwordHash = "$2a$10$YourHashedPasswordHere"; // Placeholder, real bcrypt hash would be better but for seed we can use a known one or just skip password for oauth users
+    // Real hash for "password123"
+    const passwordHash = await import("bcryptjs").then(bcrypt => bcrypt.hash("password123", 10));
 
     const adminUser = await prisma.user.upsert({
         where: { email: "admin@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "admin@iitrpr.ac.in",
             rollNumber: "ADMIN001",
@@ -52,7 +52,7 @@ async function main() {
 
     const studentUser1 = await prisma.user.upsert({
         where: { email: "2023csb1122@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "2023csb1122@iitrpr.ac.in",
             rollNumber: "2023CSB1122",
@@ -65,7 +65,7 @@ async function main() {
 
     const studentUser2 = await prisma.user.upsert({
         where: { email: "2023eeb1133@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "2023eeb1133@iitrpr.ac.in",
             rollNumber: "2023EEB1133",
@@ -78,7 +78,7 @@ async function main() {
 
     const faculty1 = await prisma.user.upsert({
         where: { email: "satyam@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "satyam@iitrpr.ac.in",
             rollNumber: "FAC001",
@@ -91,7 +91,7 @@ async function main() {
 
     const faculty2 = await prisma.user.upsert({
         where: { email: "sudarshan@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "sudarshan@iitrpr.ac.in",
             rollNumber: "FAC002",
@@ -104,7 +104,7 @@ async function main() {
 
     const advisorUser = await prisma.user.upsert({
         where: { email: "fa.cse.2023@iitrpr.ac.in" },
-        update: {},
+        update: { password: passwordHash },
         create: {
             email: "fa.cse.2023@iitrpr.ac.in",
             rollNumber: "FAC_ADV_001",
