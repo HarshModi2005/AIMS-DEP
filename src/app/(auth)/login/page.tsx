@@ -47,20 +47,12 @@ export default function LoginPage() {
                 setError("Invalid email or password");
                 setIsLoading(false);
             } else {
-                // Check role and redirect
-                const res = await fetch("/api/auth/session");
-                const session = await res.json();
-
-                if (session?.user?.role === "FACULTY_ADVISOR") {
-                    router.push("/advisor");
-                } else if (session?.user?.role === "FACULTY") {
-                    router.push("/faculty");
-                } else if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
-                    router.push("/admin");
-                } else {
-                    router.push("/");
-                }
+                // Successful login
                 router.refresh();
+                // A small delay to allow the cookie to be set and propagated
+                setTimeout(() => {
+                    window.location.href = "/"; // Force full reload to ensure session state is picked up
+                }, 500);
             }
         } catch {
             setError("An error occurred during sign in");

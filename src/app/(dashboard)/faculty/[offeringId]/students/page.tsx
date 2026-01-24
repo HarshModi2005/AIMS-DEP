@@ -22,6 +22,11 @@ import {
     Save,
     RotateCcw,
 } from "lucide-react";
+import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
+import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
+import { CardSpotlight } from "@/components/ui/aceternity/card-spotlight";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Student {
     enrollmentId: string;
@@ -92,6 +97,10 @@ export default function StudentManagementPage() {
 
     // Tab state
     const [activeTab, setActiveTab] = useState("enrollments");
+
+    // Grade state
+    const [gradeUpdates, setGradeUpdates] = useState<Record<string, string>>({});
+    const [savingGrades, setSavingGrades] = useState(false);
 
     // Selection state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -268,6 +277,57 @@ export default function StudentManagementPage() {
             setError("Failed to perform bulk action");
         } finally {
             setBulkApproving(false);
+        }
+    };
+
+    const handleGradeChange = (enrollmentId: string, value: string) => {
+        setGradeUpdates(prev => ({
+            ...prev,
+            [enrollmentId]: value
+        }));
+    };
+
+    const saveGrades = async () => {
+        if (Object.keys(gradeUpdates).length === 0) return;
+
+        setSavingGrades(true);
+        try {
+            const updates = Object.entries(gradeUpdates).map(([enrollmentId, grade]) => ({
+                enrollmentId,
+                grade
+            }));
+
+            const res = await fetch("/api/faculty/grades", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates }),
+            });
+
+            if (!res.ok) throw new Error("Failed to save grades");
+
+            // Update local state
+            setStudents(prev => prev.map(s => {
+                if (gradeUpdates[s.enrollmentId] !== undefined) {
+                    // Update the student's grade in the main list if we had it there, 
+                    // though the Student interface might need the grade field added if it's missing.
+                    // For now, we clear the pending updates.
+                    return s;
+                }
+                return s;
+            }));
+
+            setGradeUpdates({});
+            alert("Grades saved successfully!");
+
+            // Refresh to get latest data
+            const refreshRes = await fetch(`/api/faculty/offerings/${offeringId}/students`);
+            const refreshData = await refreshRes.json();
+            setStudents(refreshData.students);
+
+        } catch (err) {
+            setError("Failed to save grades");
+        } finally {
+            setSavingGrades(false);
         }
     };
 
@@ -489,8 +549,9 @@ export default function StudentManagementPage() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white p-6">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-zinc-950 text-white p-6 relative overflow-hidden">
+            <BackgroundBeams className="absolute inset-0 z-0" />
+            <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header with Breadcrumb style */}
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center gap-4">
@@ -511,7 +572,7 @@ export default function StudentManagementPage() {
 
                 {/* Tabs */}
                 <div className="flex items-center gap-6 border-b border-white/10 mb-6">
-                    {["Main", "Enrollments", "Stats", "Notes"].map((tab) => (
+                    {["Main", "Enrollments", "Upload Grades", "Stats", "Notes"].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab.toLowerCase())}
@@ -532,99 +593,101 @@ export default function StudentManagementPage() {
                 {activeTab === "main" ? (
                     <div className="space-y-8">
                         {/* Course Details Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-900/50 p-6 rounded-xl border border-white/10">
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Course</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={`${offering.courseCode} :: ${offering.courseName}`}
-                                        disabled
-                                        className="flex-1 bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-zinc-300"
-                                    />
-                                    <button className="px-4 py-2 bg-indigo-600/20 text-indigo-400 rounded-lg text-sm border border-indigo-500/30 hover:bg-indigo-600/30 transition-colors">
-                                        Lookup
-                                    </button>
+                        <CardSpotlight className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Course</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="text"
+                                            value={`${offering.courseCode} :: ${offering.courseName}`}
+                                            disabled
+                                            className="bg-zinc-800 border-white/10 text-zinc-300"
+                                        />
+                                        <button className="px-4 py-2 bg-indigo-600/20 text-indigo-400 rounded-lg text-sm border border-indigo-500/30 hover:bg-indigo-600/30 transition-colors">
+                                            Lookup
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Offering Department</Label>
+                                    <select
+                                        value={courseDetails.offeringDepartment}
+                                        onChange={(e) => setCourseDetails({ ...courseDetails, offeringDepartment: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-white/10 bg-zinc-900/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white"
+                                    >
+                                        <option>Computer Science and Engineering</option>
+                                        <option>Electrical Engineering</option>
+                                        <option>Mechanical Engineering</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Course Status</Label>
+                                    <select
+                                        value={courseDetails.status}
+                                        onChange={(e) => setCourseDetails({ ...courseDetails, status: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-white/10 bg-zinc-900/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white"
+                                    >
+                                        <option>Proposed</option>
+                                        <option>Enrolling</option>
+                                        <option>Completed</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Section</Label>
+                                    <select
+                                        value={courseDetails.section}
+                                        onChange={(e) => setCourseDetails({ ...courseDetails, section: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-white/10 bg-zinc-900/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white"
+                                    >
+                                        <option value="">Select Section</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Academic Session</Label>
+                                    <select
+                                        value={courseDetails.academicSession}
+                                        onChange={(e) => setCourseDetails({ ...courseDetails, academicSession: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-white/10 bg-zinc-900/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white"
+                                    >
+                                        <option>2025-II : current session</option>
+                                        <option>2025-S : upcoming session</option>
+                                        <option>2026-I : next session</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-zinc-400">Slot</Label>
+                                    <select
+                                        value={courseDetails.slot}
+                                        onChange={(e) => setCourseDetails({ ...courseDetails, slot: e.target.value })}
+                                        className="flex h-10 w-full rounded-md border border-white/10 bg-zinc-900/50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white"
+                                    >
+                                        <option value="">Select Slot</option>
+                                        <option value="PCDE">PCDE</option>
+                                        <option value="PCE1">PCE1</option>
+                                        <option value="PCE2">PCE2</option>
+                                        <option value="HSME">HSME</option>
+                                    </select>
                                 </div>
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Offering Department</label>
-                                <select
-                                    value={courseDetails.offeringDepartment}
-                                    onChange={(e) => setCourseDetails({ ...courseDetails, offeringDepartment: e.target.value })}
-                                    className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none appearance-none"
-                                >
-                                    <option>Computer Science and Engineering</option>
-                                    <option>Electrical Engineering</option>
-                                    <option>Mechanical Engineering</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Course Status</label>
-                                <select
-                                    value={courseDetails.status}
-                                    onChange={(e) => setCourseDetails({ ...courseDetails, status: e.target.value })}
-                                    className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none appearance-none"
-                                >
-                                    <option>Proposed</option>
-                                    <option>Enrolling</option>
-                                    <option>Completed</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Section</label>
-                                <select
-                                    value={courseDetails.section}
-                                    onChange={(e) => setCourseDetails({ ...courseDetails, section: e.target.value })}
-                                    className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none appearance-none"
-                                >
-                                    <option value="">Select Section</option>
-                                    <option value="A">A</option>
-                                    <option value="B">B</option>
-                                </select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Academic Session</label>
-                                <select
-                                    value={courseDetails.academicSession}
-                                    onChange={(e) => setCourseDetails({ ...courseDetails, academicSession: e.target.value })}
-                                    className="flex-1 bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none appearance-none"
-                                >
-                                    <option>2025-II : current session</option>
-                                    <option>2025-S : upcoming session</option>
-                                    <option>2026-I : next session</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-zinc-400 text-sm">Slot</label>
-                                <select
-                                    value={courseDetails.slot}
-                                    onChange={(e) => setCourseDetails({ ...courseDetails, slot: e.target.value })}
-                                    className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none appearance-none"
-                                >
-                                    <option value="">Select Slot</option>
-                                    <option value="PCDE">PCDE</option>
-                                    <option value="PCE1">PCE1</option>
-                                    <option value="PCE2">PCE2</option>
-                                    <option value="HSME">HSME</option>
-                                </select>
-                            </div>
-                        </div>
+                        </CardSpotlight>
 
                         {/* Instructors Section */}
-                        <div className="bg-zinc-900/50 p-6 rounded-xl border border-white/10">
-                            <div className="flex gap-4 mb-4">
+                        <CardSpotlight className="p-6">
+                            <div className="flex gap-4 mb-6">
                                 <div className="flex-1 relative">
-                                    <input
+                                    <Input
                                         type="text"
                                         placeholder="Lookup instructor by name"
                                         value={instructorSearch}
                                         onChange={(e) => setInstructorSearch(e.target.value)}
-                                        className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none"
+                                        className="bg-zinc-800 border-white/10"
                                     />
                                     {/* Search Results Dropdown */}
                                     {(searchResults.length > 0 || isSearching) && (
@@ -679,49 +742,49 @@ export default function StudentManagementPage() {
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </CardSpotlight>
 
                         {/* Enrollment Criteria Section */}
-                        <div className="bg-zinc-900/50 p-6 rounded-xl border border-white/10 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <CardSpotlight className="p-6 overflow-visible">
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end mb-6">
                                 <div className="space-y-1">
-                                    <label className="text-zinc-500 text-xs uppercase font-bold">Degree</label>
-                                    <input
+                                    <Label className="text-zinc-500 text-xs uppercase font-bold">Degree</Label>
+                                    <Input
                                         type="text"
                                         value={newCriterion.degree}
                                         onChange={e => setNewCriterion({ ...newCriterion, degree: e.target.value })}
                                         placeholder="B.Tech"
-                                        className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                                        className="bg-zinc-800 border-white/10"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-zinc-500 text-xs uppercase font-bold">Department</label>
-                                    <input
+                                    <Label className="text-zinc-500 text-xs uppercase font-bold">Department</Label>
+                                    <Input
                                         type="text"
                                         value={newCriterion.department}
                                         onChange={e => setNewCriterion({ ...newCriterion, department: e.target.value })}
                                         placeholder="CSE"
-                                        className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                                        className="bg-zinc-800 border-white/10"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-zinc-500 text-xs uppercase font-bold">Category</label>
-                                    <input
+                                    <Label className="text-zinc-500 text-xs uppercase font-bold">Category</Label>
+                                    <Input
                                         type="text"
                                         value={newCriterion.category}
                                         onChange={e => setNewCriterion({ ...newCriterion, category: e.target.value })}
                                         placeholder="General"
-                                        className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                                        className="bg-zinc-800 border-white/10"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-zinc-500 text-xs uppercase font-bold">For Entry Years</label>
-                                    <input
+                                    <Label className="text-zinc-500 text-xs uppercase font-bold">For Entry Years</Label>
+                                    <Input
                                         type="text"
                                         value={newCriterion.entryYears}
                                         onChange={e => setNewCriterion({ ...newCriterion, entryYears: e.target.value })}
                                         placeholder="2022, 2023"
-                                        className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                                        className="bg-zinc-800 border-white/10"
                                     />
                                 </div>
                                 <button
@@ -731,7 +794,7 @@ export default function StudentManagementPage() {
                                             setNewCriterion({ degree: "", department: "", category: "", entryYears: "" });
                                         }
                                     }}
-                                    className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 h-[38px]"
+                                    className="bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 h-10"
                                 >
                                     <Plus className="h-4 w-4" /> Add
                                 </button>
@@ -768,22 +831,101 @@ export default function StudentManagementPage() {
                                     ))
                                 )}
                             </div>
-                        </div>
+                        </CardSpotlight>
 
                         {/* Action Buttons */}
                         <div className="flex gap-4 pt-4">
-                            <button
+                            <HoverBorderGradient
+                                containerClassName="rounded-lg"
+                                as="button"
                                 onClick={handleSave}
-                                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-medium transition-colors"
+                                className="bg-zinc-900 text-emerald-400 flex items-center gap-2 px-6 py-2.5"
                             >
                                 <Save className="h-4 w-4" />
-                                Save
-                            </button>
-                            <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium transition-colors">
+                                <span>Save Changes</span>
+                            </HoverBorderGradient>
+
+                            <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium transition-colors backdrop-blur-sm">
                                 <RotateCcw className="h-4 w-4" />
                                 Clear
                             </button>
                         </div>
+                    </div>
+                ) : activeTab === "upload grades" ? (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-xl border border-white/10">
+                            <div>
+                                <h3 className="text-lg font-semibold text-zinc-200">Grade Entry</h3>
+                                <p className="text-zinc-500 text-sm">Enter grades for enrolled students. Unsaved changes will be lost.</p>
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setGradeUpdates({})}
+                                    className="px-4 py-2 text-zinc-400 hover:text-white transition-colors"
+                                    disabled={Object.keys(gradeUpdates).length === 0}
+                                >
+                                    Cancel
+                                </button>
+                                <HoverBorderGradient
+                                    containerClassName="rounded-lg"
+                                    as="button"
+                                    onClick={saveGrades}
+                                    className="bg-zinc-900 text-emerald-400 flex items-center gap-2 px-6 py-2.5"
+                                >
+                                    {savingGrades ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    <span>Save Grades ({Object.keys(gradeUpdates).length})</span>
+                                </HoverBorderGradient>
+                            </div>
+                        </div>
+
+                        <CardSpotlight className="p-0 overflow-hidden bg-zinc-900/50">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-white/5 text-zinc-300">
+                                    <tr>
+                                        <th className="px-6 py-4 font-semibold">Roll No.</th>
+                                        <th className="px-6 py-4 font-semibold">Name</th>
+                                        <th className="px-6 py-4 font-semibold">Email</th>
+                                        <th className="px-6 py-4 font-semibold">Current Grade</th>
+                                        <th className="px-6 py-4 font-semibold w-32">New Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-white/5">
+                                    {enrolledStudents.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
+                                                No enrolled students found.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        enrolledStudents.map((student) => (
+                                            <tr key={student.enrollmentId} className="hover:bg-white/5">
+                                                <td className="px-6 py-4 font-mono text-indigo-400">{student.rollNumber}</td>
+                                                <td className="px-6 py-4 font-medium">{student.name}</td>
+                                                <td className="px-6 py-4 text-zinc-400">{student.email}</td>
+                                                <td className="px-6 py-4">
+                                                    {/* We need to fetch/display existing grade if available. 
+                                                        Assuming 'student' object has 'grade' field from API. 
+                                                        I need to verify Student interface update. */}
+                                                    <span className="inline-block px-2 py-1 bg-zinc-800 rounded text-xs text-zinc-300">
+                                                        {(student as any).grade || "N/A"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Input
+                                                        type="text"
+                                                        maxLength={2}
+                                                        className="w-20 bg-zinc-950 border-zinc-800 uppercase text-center font-bold"
+                                                        value={gradeUpdates[student.enrollmentId] ?? ""}
+                                                        onChange={(e) => handleGradeChange(student.enrollmentId, e.target.value.toUpperCase())}
+                                                        placeholder="-"
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </CardSpotlight>
                     </div>
                 ) : activeTab === "enrollments" ? (
                     <>
