@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
                         },
                     },
                     select: {
+                        id: true,
                         courseOfferingId: true,
                         enrollmentStatus: true,
                     },
@@ -61,9 +62,15 @@ export async function GET(request: NextRequest) {
         );
         const pendingOfferingIds = new Set(
             student?.enrollments
-                .filter((e) => e.enrollmentStatus === "PENDING")
+                .filter((e) => (e.enrollmentStatus as any) === "PENDING" || (e.enrollmentStatus as any) === "PENDING_ADVISOR")
                 .map((e) => e.courseOfferingId) || []
         );
+
+        // Map for exact status
+        const statusMap = new Map<string, string>();
+        student?.enrollments.forEach(e => {
+            statusMap.set(e.courseOfferingId, e.enrollmentStatus);
+        });
 
         // Build filter
         const where: Record<string, unknown> = {
@@ -136,6 +143,7 @@ export async function GET(request: NextRequest) {
             fee: offering.fee,
             isEnrolled: enrolledOfferingIds.has(offering.id),
             isPending: pendingOfferingIds.has(offering.id),
+            enrollmentStatus: statusMap.get(offering.id) || null,
             instructor: offering.instructors
                 .map((i) => `${i.faculty.user.firstName} ${i.faculty.user.lastName}`)
                 .join(", "),

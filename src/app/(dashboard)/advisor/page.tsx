@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Users, BookOpen, GraduationCap, ArrowRight } from "lucide-react";
 
 interface Batch {
@@ -13,6 +14,7 @@ interface Batch {
 
 export default function AdvisorDashboard() {
     const { data: session } = useSession();
+    const router = useRouter();
     const [batches, setBatches] = useState<Batch[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,6 +25,11 @@ export default function AdvisorDashboard() {
                 const data = await res.json();
                 if (data.batches) {
                     setBatches(data.batches);
+                    // Automatic redirect if only one batch
+                    if (data.batches.length === 1) {
+                        const batch = data.batches[0];
+                        router.replace(`/advisor/batch/${encodeURIComponent(batch.department)}/${batch.batchYear}`);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch batches", error);

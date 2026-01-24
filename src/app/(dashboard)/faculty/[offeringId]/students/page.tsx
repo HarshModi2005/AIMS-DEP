@@ -323,9 +323,13 @@ export default function StudentManagementPage() {
 
     // Separate pending and enrolled
     const pendingStudents = filteredStudents.filter((s) => s.enrollmentStatus === "PENDING");
-    const enrolledStudents = filteredStudents.filter((s) => s.enrollmentStatus === "ENROLLED");
+    const enrolledStudents = filteredStudents.filter(
+        (s) => s.enrollmentStatus === "ENROLLED" || s.enrollmentStatus === "PENDING_ADVISOR"
+    );
     const otherStudents = filteredStudents.filter(
-        (s) => s.enrollmentStatus !== "PENDING" && s.enrollmentStatus !== "ENROLLED"
+        (s) => s.enrollmentStatus !== "PENDING" &&
+            s.enrollmentStatus !== "ENROLLED" &&
+            s.enrollmentStatus !== "PENDING_ADVISOR"
     );
 
     // Handle individual approval/rejection
@@ -347,7 +351,7 @@ export default function StudentManagementPage() {
             setStudents((prev) =>
                 prev.map((s) =>
                     s.enrollmentId === enrollmentId
-                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "ENROLLED" : "DROPPED" }
+                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "DROPPED" }
                         : s
                 )
             );

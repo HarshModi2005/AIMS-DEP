@@ -18,7 +18,8 @@ interface CourseForEnrollment {
     maxStrength: number;
     currentStrength: number;
     isEnrolled: boolean;
-    isPending: boolean; // Track pending requests
+    isPending: boolean;
+    enrollmentStatus: string | null;
     instructor: string;
     fee: number;
 }
@@ -133,7 +134,7 @@ export default function EnrollmentPage() {
         setSelectedStatus("all");
     };
 
-    const getStatusBadge = (status: string, isEnrolled: boolean, isPending: boolean) => {
+    const getStatusBadge = (status: string, isEnrolled: boolean, isPending: boolean, enrollmentStatus: string | null) => {
         if (isEnrolled) {
             return (
                 <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs">
@@ -143,10 +144,14 @@ export default function EnrollmentPage() {
             );
         }
         if (isPending) {
+            const isAdvisorPending = enrollmentStatus === "PENDING_ADVISOR";
             return (
-                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs">
+                <span className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                    isAdvisorPending ? "bg-amber-500/20 text-amber-500" : "bg-amber-500/10 text-amber-400"
+                )}>
                     <Clock className="h-3 w-3" />
-                    Pending Approval
+                    {isAdvisorPending ? "Pending Advisor Approval" : "Pending Faculty Approval"}
                 </span>
             );
         }
@@ -344,7 +349,7 @@ export default function EnrollmentPage() {
                                         <td className="text-zinc-400">
                                             {course.fee > 0 ? `₹${course.fee}` : "Free"}
                                         </td>
-                                        <td>{getStatusBadge(course.status, course.isEnrolled, course.isPending)}</td>
+                                        <td>{getStatusBadge(course.status, course.isEnrolled, course.isPending, course.enrollmentStatus)}</td>
                                         <td>
                                             {course.fee > 0 && !course.isEnrolled && !course.isPending ? (
                                                 <RazorpayButton
