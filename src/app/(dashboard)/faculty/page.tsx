@@ -15,6 +15,9 @@ import {
     ToggleLeft,
     ToggleRight,
 } from "lucide-react";
+import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
+import { CardSpotlight } from "@/components/ui/aceternity/card-spotlight";
+import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
 
 interface StudentEnrollment {
     enrollmentId: string;
@@ -120,22 +123,29 @@ export default function FacultyDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white p-6">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-zinc-950 text-white p-6 relative overflow-hidden">
+            <BackgroundBeams className="absolute inset-0 z-0" />
+            <div className="max-w-7xl mx-auto relative z-10">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-12">
                     <div>
-                        <h1 className="text-3xl font-bold">Faculty Dashboard</h1>
-                        <p className="text-zinc-400 mt-1">
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-500 bg-clip-text text-transparent mb-2">
+                            Faculty Dashboard
+                        </h1>
+                        <p className="text-zinc-400">
                             Manage your courses, enrollments, and feedback
                         </p>
                     </div>
-                    <Link
-                        href="/faculty/float-course"
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Float New Course
+
+                    <Link href="/faculty/float-course">
+                        <HoverBorderGradient
+                            containerClassName="rounded-full"
+                            as="button"
+                            className="bg-zinc-900 text-white flex items-center gap-2 px-4 py-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            <span>Float New Course</span>
+                        </HoverBorderGradient>
                     </Link>
                 </div>
 
@@ -148,36 +158,44 @@ export default function FacultyDashboard() {
                 )}
 
                 {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-5">
-                        <div className="flex items-center gap-3 mb-2">
-                            <BookOpen className="h-5 w-5 text-indigo-400" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                    <CardSpotlight className="p-6">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 rounded-lg bg-indigo-500/10">
+                                <BookOpen className="h-6 w-6 text-indigo-400" />
+                            </div>
                             <span className="text-zinc-400">My Courses</span>
                         </div>
-                        <p className="text-2xl font-bold">{offerings.length}</p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-5">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Clock className="h-5 w-5 text-amber-400" />
+                        <p className="text-4xl font-bold text-white">{offerings.length}</p>
+                    </CardSpotlight>
+
+                    <CardSpotlight className="p-6">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 rounded-lg bg-amber-500/10">
+                                <Clock className="h-6 w-6 text-amber-400" />
+                            </div>
                             <span className="text-zinc-400">Pending Requests</span>
                         </div>
-                        <p className="text-2xl font-bold">{totalPending}</p>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-5">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Users className="h-5 w-5 text-emerald-400" />
+                        <p className="text-4xl font-bold text-white">{totalPending}</p>
+                    </CardSpotlight>
+
+                    <CardSpotlight className="p-6">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 rounded-lg bg-emerald-500/10">
+                                <Users className="h-6 w-6 text-emerald-400" />
+                            </div>
                             <span className="text-zinc-400">Total Enrolled</span>
                         </div>
-                        <p className="text-2xl font-bold">
+                        <p className="text-4xl font-bold text-white">
                             {offerings.reduce((sum, o) => sum + o.currentStrength, 0)}
                         </p>
-                    </div>
+                    </CardSpotlight>
                 </div>
 
                 {/* Courses */}
-                <h2 className="text-xl font-semibold mb-4">My Courses</h2>
+                <h2 className="text-2xl font-semibold mb-6 text-white">My Courses</h2>
                 {offerings.length === 0 ? (
-                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-12 text-center">
+                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-12 text-center backdrop-blur-sm">
                         <BookOpen className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
                         <p className="text-zinc-400">
                             You haven't floated any courses yet.
@@ -192,20 +210,20 @@ export default function FacultyDashboard() {
                 ) : (
                     <div className="space-y-6">
                         {offerings.map((offering) => (
-                            <div
+                            <CardSpotlight
                                 key={offering.offeringId}
-                                className="rounded-xl border border-white/10 bg-zinc-900/50 overflow-hidden"
+                                className="p-0 overflow-hidden bg-zinc-900/80"
                             >
                                 {/* Course Header */}
-                                <div className="px-6 py-4 flex items-center justify-between">
+                                <div className="px-8 py-6 flex items-center justify-between">
                                     <div>
-                                        <h3 className="font-semibold text-lg">
+                                        <h3 className="font-bold text-xl mb-1">
                                             <span className="text-indigo-400">
                                                 {offering.courseCode}
                                             </span>{" "}
                                             - {offering.courseName}
                                         </h3>
-                                        <p className="text-sm text-zinc-500">
+                                        <p className="text-zinc-500">
                                             {offering.currentStrength} / {offering.maxStrength} enrolled
                                         </p>
                                     </div>
@@ -214,9 +232,9 @@ export default function FacultyDashboard() {
                                         <button
                                             onClick={() => toggleFeedback(offering.offeringId, offering.feedbackOpen)}
                                             disabled={togglingFeedback === offering.offeringId}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${offering.feedbackOpen
-                                                ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                                                : "bg-zinc-700/50 text-zinc-400 hover:bg-zinc-700"
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${offering.feedbackOpen
+                                                ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30"
+                                                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 border border-white/10"
                                                 }`}
                                         >
                                             {togglingFeedback === offering.offeringId ? (
@@ -230,13 +248,13 @@ export default function FacultyDashboard() {
                                             Feedback {offering.feedbackOpen ? "Open" : "Closed"}
                                         </button>
 
-                                        {/* View Students Button */}
+                                        {/* View Course Button */}
                                         <Link
                                             href={`/faculty/${offering.offeringId}/students`}
-                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-sm transition-colors"
+                                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 text-sm font-medium border border-indigo-500/30 transition-all hover:scale-105"
                                         >
                                             <Users className="h-4 w-4" />
-                                            View Students
+                                            View Course
                                             {offering.students.filter(s => s.enrollmentStatus === "PENDING").length > 0 && (
                                                 <span className="ml-1 flex h-2 w-2 relative">
                                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -246,7 +264,7 @@ export default function FacultyDashboard() {
                                         </Link>
                                     </div>
                                 </div>
-                            </div>
+                            </CardSpotlight>
                         ))}
                     </div>
                 )}

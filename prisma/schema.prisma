@@ -364,6 +364,7 @@ model CourseOffering {
 
 enum OfferingStatus {
   PLANNED
+  PENDING_APPROVAL
   OPEN_FOR_ENROLLMENT
   ENROLLMENT_CLOSED
   IN_PROGRESS

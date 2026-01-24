@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -24,6 +24,9 @@ declare module "next-auth" {
     }
 }
 
+class InvalidCredentials extends CredentialsSignin {
+    code = "invalid_credentials"
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -47,7 +50,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error("Invalid credentials");
+                    throw new InvalidCredentials();
                 }
 
                 const user = await prisma.user.findUnique({
@@ -55,7 +58,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 });
 
                 if (!user || !user.password) {
-                    throw new Error("Invalid credentials");
+                    throw new InvalidCredentials();
                 }
 
                 const isValid = await bcrypt.compare(
@@ -64,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 );
 
                 if (!isValid) {
-                    throw new Error("Invalid credentials");
+                    throw new InvalidCredentials();
                 }
 
                 return {
