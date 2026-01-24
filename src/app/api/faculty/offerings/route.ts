@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
                 offeringDepartment: offeringDepartment || course.department,
                 maxStrength: maxStrength,
                 currentStrength: 0,
-                status: "OPEN_FOR_ENROLLMENT",
+                status: "PENDING_APPROVAL",
                 instructors: {
                     create: {
                         facultyId: faculty.id,
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
             {
-                message: "Course floated successfully",
+                message: "Course floated successfully. Sent for Admin Approval.",
                 offering: {
                     id: offering.id,
                     courseCode: offering.course.courseCode,

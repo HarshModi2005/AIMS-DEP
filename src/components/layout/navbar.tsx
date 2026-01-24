@@ -102,37 +102,8 @@ const advisorNavItems: NavItem[] = [
     },
 ];
 
-// Admin-specific nav items
-const adminNavItems: NavItem[] = [
-    {
-        label: "Dashboard",
-        href: "/admin",
-        icon: LayoutDashboard,
-        roles: ["ADMIN", "SUPER_ADMIN"],
-    },
-    {
-        label: "Courses",
-        href: "/courses/enrollment",
-        icon: BookOpen,
-        roles: ["ADMIN", "SUPER_ADMIN"],
-        children: [
-            { label: "Courses for Enrollment", href: "/courses/enrollment" },
-            { label: "Courses Available for Offering", href: "/courses/offerings" },
-        ],
-    },
-    {
-        label: "Course Feedback",
-        href: "/admin/feedback",
-        icon: MessageSquare,
-        roles: ["ADMIN", "SUPER_ADMIN"],
-    },
-    {
-        label: "Fee Management",
-        href: "/admin/fees",
-        icon: CreditCard,
-        roles: ["ADMIN", "SUPER_ADMIN"],
-    },
-];
+// Admin-specific nav items - EMPTY: All navigation is through dashboard
+const adminNavItems: NavItem[] = [];
 
 // Common nav items
 const commonNavItems: NavItem[] = [
@@ -175,7 +146,7 @@ export function Navbar() {
             return [...facultyNavItems, ...commonNavItems];
         }
         if (userRole === "ADMIN" || userRole === "SUPER_ADMIN") {
-            return [...adminNavItems, ...commonNavItems];
+            return []; // Empty navbar for admins - all navigation through dashboard
         }
         // Default to student
         return [...studentNavItems, ...commonNavItems];

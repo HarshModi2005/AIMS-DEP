@@ -64,6 +64,14 @@ export default async function AdminDashboard() {
             stats: { label: "Assigned", value: assignedAdvisors.toString() },
         },
         {
+            title: "Course Approvals",
+            description: "Review and approve faculty course offerings",
+            icon: AlertCircle,
+            href: "/admin/approvals",
+            color: "from-yellow-500 to-amber-500",
+            stats: { label: "Pending", value: "3" },
+        },
+        {
             title: "Course Management",
             description: "Create and manage courses, offerings, and slots",
             icon: BookOpen,

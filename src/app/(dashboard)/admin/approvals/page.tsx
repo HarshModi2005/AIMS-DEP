@@ -1,0 +1,160 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import { Loader2, CheckCircle, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { format } from "date-fns";
+
+interface PendingOffering {
+    id: string;
+    courseCode: string;
+    courseName: string;
+    department: string;
+    credits: number;
+    instructor: string;
+    session: string;
+    maxStrength: number;
+    floatedAt: string;
+}
+
+export default function AdminApprovalsPage() {
+    const { data: session, status } = useSession();
+    const [offerings, setOfferings] = useState<PendingOffering[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [processingId, setProcessingId] = useState<string | null>(null);
+    const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
+
+    useEffect(() => {
+        if (status === "authenticated" && (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN")) {
+            fetchPendingOfferings();
+        }
+    }, [session, status]);
+
+    async function fetchPendingOfferings() {
+        try {
+            const res = await fetch("/api/admin/approvals");
+            if (res.ok) {
+                const data = await res.json();
+                setOfferings(data.offerings || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch offerings", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleApproval(id: string, action: "approve" | "reject") {
+        setProcessingId(id);
+        setMessage(null);
+
+        try {
+            const status = action === "approve" ? "OPEN_FOR_ENROLLMENT" : "REJECTED";
+            const res = await fetch(`/api/admin/approvals/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status }),
+            });
+
+            if (!res.ok) throw new Error("Failed to update status");
+
+            // Remove from list
+            setOfferings((prev) => prev.filter((o) => o.id !== id));
+            setMessage({
+                type: "success",
+                text: `Course ${action === "approve" ? "approved" : "rejected"} successfully`
+            });
+
+            // Clear message after 3 seconds
+            setTimeout(() => setMessage(null), 3000);
+
+        } catch (error) {
+            setMessage({ type: "error", text: "Failed to process request" });
+        } finally {
+            setProcessingId(null);
+        }
+    }
+
+    if (status === "loading" || loading) {
+        return (
+            <div className="min-h-screen bg-zinc-950 text-white p-6 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+            </div>
+        );
+    }
+
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
+        redirect("/");
+    }
+
+    return (
+        <div className="min-h-screen bg-zinc-950 text-white p-6">
+            <div className="max-w-7xl mx-auto">
+                <div className="flex items-center gap-4 mb-8">
+                    <Link href="/admin" className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold">Pending Approvals</h1>
+                        <p className="text-zinc-400">Review and approve faculty course offerings</p>
+                    </div>
+                </div>
+
+                {message && (
+                    <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+                        {message.type === "success" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                        {message.text}
+                    </div>
+                )}
+
+                {offerings.length === 0 ? (
+                    <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-white/10">
+                        <CheckCircle className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-medium text-zinc-400">All Caught Up!</h3>
+                        <p className="text-zinc-500">No pending course approvals found.</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {offerings.map((offering) => (
+                            <div key={offering.id} className="bg-zinc-900 rounded-xl border border-white/10 p-6 flex items-center justify-between">
+                                <div>
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <span className="px-2 py-1 rounded text-xs font-semibold bg-indigo-500/20 text-indigo-400">
+                                            {offering.courseCode}
+                                        </span>
+                                        <h3 className="font-semibold text-lg">{offering.courseName}</h3>
+                                    </div>
+                                    <div className="text-sm text-zinc-400 space-y-1">
+                                        <p>Instructor: <span className="text-white">{offering.instructor}</span> • Department: <span className="text-white">{offering.department}</span></p>
+                                        <p>Credits: {offering.credits} • Max Strength: {offering.maxStrength} • Floated: {format(new Date(offering.floatedAt), "PPp")}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => handleApproval(offering.id, "reject")}
+                                        disabled={processingId === offering.id}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+                                    >
+                                        {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                                        Reject
+                                    </button>
+                                    <button
+                                        onClick={() => handleApproval(offering.id, "approve")}
+                                        disabled={processingId === offering.id}
+                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors shadow-lg shadow-emerald-900/20"
+                                    >
+                                        {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                        Approve
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

@@ -202,8 +202,8 @@ export default function FloatCoursePage() {
             <div className="min-h-screen bg-zinc-950 text-white p-6 flex items-center justify-center">
                 <div className="text-center">
                     <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold mb-2">Course Floated Successfully!</h2>
-                    <p className="text-zinc-400">Redirecting to dashboard...</p>
+                    <h2 className="text-2xl font-bold mb-2">Course Submitted for Approval!</h2>
+                    <p className="text-zinc-400">Sent to admin for review. Redirecting...</p>
                 </div>
             </div>
         );
