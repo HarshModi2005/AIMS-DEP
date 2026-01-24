@@ -42,7 +42,21 @@ export async function GET(
                         courseName: true,
                     },
                 },
-                instructors: true,
+                instructors: {
+                    include: {
+                        faculty: {
+                            include: {
+                                user: {
+                                    select: {
+                                        firstName: true,
+                                        lastName: true,
+                                        email: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
                 enrollments: {
                     include: {
                         student: {
@@ -113,6 +127,12 @@ export async function GET(
                 courseName: offering.course.courseName,
                 maxStrength: offering.maxStrength,
                 currentStrength: offering.currentStrength,
+                instructors: offering.instructors.map(i => ({
+                    id: i.faculty.id, // This is the Faculty ID
+                    name: `${i.faculty.user.firstName} ${i.faculty.user.lastName}`,
+                    email: i.faculty.user.email,
+                    isCoordinator: i.isPrimary,
+                })),
             },
             students,
             filterOptions: {

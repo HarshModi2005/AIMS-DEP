@@ -55,6 +55,7 @@ interface Instructor {
     name: string;
     email: string;
     isCoordinator: boolean;
+    department?: string; // Optional for search results
 }
 
 interface EnrollmentCriterion {
@@ -104,10 +105,10 @@ export default function StudentManagementPage() {
         slot: "",
     });
 
-    const [instructors, setInstructors] = useState<Instructor[]>([
-        { id: "1", name: "Puneet (Faculty)", email: "puneet@example.com", isCoordinator: true }
-    ]);
+    const [instructors, setInstructors] = useState<Instructor[]>([]);
     const [instructorSearch, setInstructorSearch] = useState("");
+    const [searchResults, setSearchResults] = useState<Instructor[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     const [criteria, setCriteria] = useState<EnrollmentCriterion[]>([]);
     const [newCriterion, setNewCriterion] = useState<Omit<EnrollmentCriterion, "id">>({
@@ -167,6 +168,63 @@ export default function StudentManagementPage() {
             setSelectedIds(new Set());
         } else {
             setSelectedIds(new Set(displayedStudents.map(s => s.enrollmentId)));
+        }
+    };
+
+    // Search Effect
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (instructorSearch.length < 2) {
+                setSearchResults([]);
+                return;
+            }
+
+            setIsSearching(true);
+            try {
+                const res = await fetch(`/api/faculty/search?q=${encodeURIComponent(instructorSearch)}`);
+                const data = await res.json();
+                if (data.faculty) {
+                    setSearchResults(data.faculty);
+                }
+            } catch (err) {
+                console.error("Search failed", err);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [instructorSearch]);
+
+    const addInstructor = (faculty: Instructor) => {
+        if (!instructors.some(i => i.id === faculty.id)) {
+            setInstructors([...instructors, { ...faculty, isCoordinator: false }]);
+        }
+        setInstructorSearch("");
+        setSearchResults([]);
+    };
+
+    const removeInstructor = (id: string) => {
+        setInstructors(instructors.filter(i => i.id !== id));
+    };
+
+    const handleSave = async () => {
+        try {
+            const res = await fetch(`/api/faculty/offerings/${offeringId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    courseDetails, // If we were using this state properly 
+                    instructors,
+                    criteria
+                }),
+            });
+
+            if (!res.ok) throw new Error("Failed to save");
+
+            alert("Saved successfully!");
+        } catch (err) {
+            setError("Failed to save changes");
         }
     };
 
@@ -230,6 +288,10 @@ export default function StudentManagementPage() {
                 }
                 const data = await res.json();
                 setOffering(data.offering);
+                // Set instructors from the API response
+                if (data.offering.instructors) {
+                    setInstructors(data.offering.instructors);
+                }
                 setStudents(data.students);
                 setFilterOptions(data.filterOptions);
             } catch (err) {
@@ -560,6 +622,25 @@ export default function StudentManagementPage() {
                                         onChange={(e) => setInstructorSearch(e.target.value)}
                                         className="w-full bg-zinc-800 border border-white/10 rounded-lg px-3 py-2 text-white focus:border-indigo-500 outline-none"
                                     />
+                                    {/* Search Results Dropdown */}
+                                    {(searchResults.length > 0 || isSearching) && (
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-zinc-800 border border-white/10 rounded-lg shadow-xl z-20 max-h-60 overflow-y-auto">
+                                            {isSearching ? (
+                                                <div className="p-3 text-sm text-zinc-400 text-center">Searching...</div>
+                                            ) : (
+                                                searchResults.map((result) => (
+                                                    <button
+                                                        key={result.id}
+                                                        onClick={() => addInstructor(result)}
+                                                        className="w-full text-left px-3 py-2 hover:bg-white/5 text-sm flex flex-col border-b border-white/5 last:border-0"
+                                                    >
+                                                        <span className="text-white font-medium">{result.name}</span>
+                                                        <span className="text-zinc-500 text-xs">{result.email} • {result.department}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -583,7 +664,10 @@ export default function StudentManagementPage() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button className="text-red-400 hover:text-red-300 p-1 hover:bg-red-400/10 rounded transition-colors">
+                                                <button
+                                                    onClick={() => removeInstructor(inst.id)}
+                                                    className="text-red-400 hover:text-red-300 p-1 hover:bg-red-400/10 rounded transition-colors"
+                                                >
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </td>
@@ -684,7 +768,10 @@ export default function StudentManagementPage() {
 
                         {/* Action Buttons */}
                         <div className="flex gap-4 pt-4">
-                            <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-medium transition-colors">
+                            <button
+                                onClick={handleSave}
+                                className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-medium transition-colors"
+                            >
                                 <Save className="h-4 w-4" />
                                 Save
                             </button>

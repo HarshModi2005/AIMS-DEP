@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Filter, X, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import RazorpayButton from "@/components/payments/RazorpayButton";
 
@@ -305,13 +306,15 @@ export default function EnrollmentPage() {
                                     <tr key={course.id}>
                                         <td className="text-zinc-500">{idx + 1}</td>
                                         <td>
-                                            <div>
-                                                <span className="font-medium text-indigo-400">{course.code}</span>
-                                                <span className="text-zinc-400"> - {course.name}</span>
-                                            </div>
-                                            <div className="text-sm text-zinc-500">
-                                                L-T-P-S-C: {course.ltp} | Credits: {course.credits}
-                                            </div>
+                                            <Link href={`/courses/offerings/${course.id}`} className="block group">
+                                                <div>
+                                                    <span className="font-medium text-indigo-400 group-hover:underline">{course.code}</span>
+                                                    <span className="text-zinc-400"> - {course.name}</span>
+                                                </div>
+                                                <div className="text-sm text-zinc-500">
+                                                    L-T-P-S-C: {course.ltp} | Credits: {course.credits}
+                                                </div>
+                                            </Link>
                                         </td>
                                         <td className="text-sm text-zinc-400">{course.department}</td>
                                         <td className="text-zinc-400">{course.instructor || "TBA"}</td>
@@ -354,8 +357,14 @@ export default function EnrollmentPage() {
                                                 />
                                             ) : (
                                                 <button
-                                                    onClick={() => handleEnroll(course.id)}
-                                                    disabled={course.isEnrolled || course.isPending || course.status !== "OPEN_FOR_ENROLLMENT" || enrollingCourseId === course.id}
+                                                    onClick={() => {
+                                                        if (course.status !== "OPEN_FOR_ENROLLMENT") {
+                                                            setError("This course is not currently enrolling students.");
+                                                            return;
+                                                        }
+                                                        handleEnroll(course.id);
+                                                    }}
+                                                    disabled={course.isEnrolled || course.isPending || enrollingCourseId === course.id}
                                                     className={cn(
                                                         "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                                                         course.isEnrolled
@@ -364,7 +373,7 @@ export default function EnrollmentPage() {
                                                                 ? "bg-amber-600/20 text-amber-400 cursor-not-allowed"
                                                                 : course.status === "OPEN_FOR_ENROLLMENT"
                                                                     ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                                                    : "bg-zinc-700 text-zinc-400 cursor-not-allowed"
+                                                                    : "bg-zinc-700 text-zinc-400 hover:bg-zinc-600"
                                                     )}
                                                 >
                                                     {enrollingCourseId === course.id ? (
