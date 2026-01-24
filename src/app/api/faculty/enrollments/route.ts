@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
                 instructors: {
                     some: { facultyId: faculty.id },
                 },
+                status: {
+                    in: ["OPEN_FOR_ENROLLMENT", "ENROLLMENT_CLOSED"]
+                }
             },
             include: {
                 course: {
@@ -186,7 +189,7 @@ export async function PUT(request: NextRequest) {
             await prisma.$transaction([
                 prisma.enrollment.update({
                     where: { id: enrollmentId },
-                    data: { enrollmentStatus: "PENDING_ADVISOR" },
+                    data: { enrollmentStatus: "PENDING_ADVISOR" as any },
                 }),
                 prisma.courseOffering.update({
                     where: { id: enrollment.courseOfferingId },

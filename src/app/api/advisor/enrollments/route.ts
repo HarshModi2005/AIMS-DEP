@@ -19,10 +19,8 @@ export const GET = async (req: Request) => {
         const { searchParams } = new URL(req.url);
         const department = searchParams.get("department");
         const yearStr = searchParams.get("year");
-
-        // If param is provided, filter by it. If not, fetch all pending for this advisor?
-        // Requirement says "list of years... taken to a new page... list of students... enrollment request".
-        // So likely filtered by batch.
+        const mode = searchParams.get("mode") || "students"; // "students" or "courses"
+        const courseCode = searchParams.get("courseCode"); // Filter for specific course
 
         if (!department || !yearStr) {
             return NextResponse.json({ error: "Department and Year are required" }, { status: 400 });
@@ -44,19 +42,57 @@ export const GET = async (req: Request) => {
                 student: {
                     department: department,
                     yearOfEntry: year
-                }
+                },
+                ...(courseCode ? { courseOffering: { course: { courseCode } } } : {})
             },
             include: {
                 student: {
                     include: { user: true }
                 },
                 courseOffering: {
-                    include: { course: true }
+                    include: {
+                        course: true,
+                        instructors: {
+                            include: {
+                                faculty: {
+                                    include: { user: true }
+                                }
+                            }
+                        }
+                    }
                 }
             }
-        });
+        }) as any[];
 
-        // Transform response
+        if (mode === "courses") {
+            // Group by course
+            const courseGroups = new Map<string, any>();
+
+            enrollments.forEach(e => {
+                const offering = e.courseOffering;
+                const course = offering.course;
+                if (!courseGroups.has(course.courseCode)) {
+                    const instructors = offering.instructors
+                        .map((i: any) => `${i.faculty.user.firstName} ${i.faculty.user.lastName}`)
+                        .join(", ");
+
+                    const lpstc = `${course.lectureHours}-${course.tutorialHours}-${course.practicalHours}-${course.selfStudyHours}-${course.credits}`;
+
+                    courseGroups.set(course.courseCode, {
+                        courseCode: course.courseCode,
+                        courseName: course.courseName,
+                        instructorName: instructors || "TBA",
+                        lpstc: lpstc,
+                        pendingCount: 0
+                    });
+                }
+                courseGroups.get(course.courseCode).pendingCount += 1;
+            });
+
+            return NextResponse.json({ courses: Array.from(courseGroups.values()) });
+        }
+
+        // Transform response for students
         const formatted = enrollments.map(e => ({
             id: e.id,
             studentName: `${e.student.user.firstName} ${e.student.user.lastName}`,
