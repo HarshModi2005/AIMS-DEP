@@ -113,6 +113,7 @@ export async function GET(
                 enrollmentType: e.enrollmentType,
                 enrollmentStatus: e.enrollmentStatus,
                 requestedAt: e.enrolledAt,
+                grade: e.grade,
             };
         });
 
