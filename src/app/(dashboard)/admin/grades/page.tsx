@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
-import { Loader2, Calendar, Search, ToggleLeft, ToggleRight, Save, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Calendar, Save, Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 
 interface AcademicDate {
@@ -15,13 +15,7 @@ interface AcademicDate {
     isVisible: boolean;
 }
 
-interface CourseOverride {
-    id: string; // courseOffering id
-    courseCode: string;
-    courseName: string;
-    department: string;
-    gradeSubmissionEnabled: boolean | null; // null = global, true = open, false = closed
-}
+
 
 export default function AdminGradesPage() {
     const { data: session, status } = useSession();
@@ -31,10 +25,7 @@ export default function AdminGradesPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    // Course Search
-    const [searchQuery, setSearchQuery] = useState("");
-    const [courseResults, setCourseResults] = useState<CourseOverride[]>([]);
-    const [searching, setSearching] = useState(false);
+
 
     useEffect(() => {
         if (status === "authenticated" && (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN")) {
@@ -86,41 +77,7 @@ export default function AdminGradesPage() {
         }
     };
 
-    const searchCourses = async () => {
-        if (!searchQuery) return;
-        setSearching(true);
-        try {
-            const res = await fetch(`/api/admin/grade-window/courses?q=${encodeURIComponent(searchQuery)}`);
-            const data = await res.json();
-            setCourseResults(data.courses || []);
-        } catch (error) {
-            console.error("Search failed", error);
-        } finally {
-            setSearching(false);
-        }
-    };
 
-    const toggleCourseOverride = async (offeringId: string, currentState: boolean | null, targetState: boolean | null) => {
-        // Optimistic update
-        setCourseResults(prev => prev.map(c => c.id === offeringId ? { ...c, gradeSubmissionEnabled: targetState } : c));
-
-        try {
-            const res = await fetch(`/api/admin/grade-window/courses/${offeringId}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ enabled: targetState }),
-            });
-
-            if (!res.ok) {
-                // Revert on failure
-                setCourseResults(prev => prev.map(c => c.id === offeringId ? { ...c, gradeSubmissionEnabled: currentState } : c));
-                alert("Failed to update course override.");
-            }
-        } catch (error) {
-            console.error("Override failed", error);
-            setCourseResults(prev => prev.map(c => c.id === offeringId ? { ...c, gradeSubmissionEnabled: currentState } : c));
-        }
-    };
 
     if (status === "loading" || loading) {
         return (
@@ -185,111 +142,7 @@ export default function AdminGradesPage() {
                     </div>
                 </div>
 
-                {/* Course Overrides */}
-                <div className="bg-zinc-900 rounded-xl border border-white/10 p-6">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <ToggleLeft className="h-5 w-5 text-emerald-400" />
-                        Course Overrides
-                    </h2>
-                    <p className="text-sm text-zinc-400 mb-6">
-                        Manually open or close submission for specific courses, regardless of the global window.
-                    </p>
 
-                    <div className="flex gap-4 mb-6">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                            <input
-                                type="text"
-                                placeholder="Search course code or name..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && searchCourses()}
-                                className="w-full bg-zinc-800 border border-white/10 rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            />
-                        </div>
-                        <button
-                            onClick={searchCourses}
-                            disabled={searching}
-                            className="bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors border border-white/10"
-                        >
-                            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-                        </button>
-                    </div>
-
-                    <div className="overflow-hidden rounded-lg border border-white/5">
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-zinc-950 text-zinc-400">
-                                <tr>
-                                    <th className="px-4 py-3 font-medium">Course</th>
-                                    <th className="px-4 py-3 font-medium">Department</th>
-                                    <th className="px-4 py-3 font-medium text-center">Current Mode</th>
-                                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/5">
-                                {courseResults.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-8 text-center text-zinc-500">
-                                            {searchQuery ? "No courses found." : "Search for a course to manage overrides."}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    courseResults.map((course) => (
-                                        <tr key={course.id} className="bg-zinc-900/50 hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium text-white">{course.courseCode}</div>
-                                                <div className="text-zinc-500 text-xs">{course.courseName}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-zinc-400">{course.department}</td>
-                                            <td className="px-4 py-3 text-center">
-                                                {course.gradeSubmissionEnabled === true && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-xs border border-emerald-500/30">
-                                                        Always Open
-                                                    </span>
-                                                )}
-                                                {course.gradeSubmissionEnabled === false && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs border border-red-500/30">
-                                                        Always Closed
-                                                    </span>
-                                                )}
-                                                {course.gradeSubmissionEnabled === null && (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-500/20 text-zinc-400 text-xs border border-white/10">
-                                                        Global Default
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <button
-                                                        onClick={() => toggleCourseOverride(course.id, course.gradeSubmissionEnabled, null)}
-                                                        className={`px-3 py-1 rounded text-xs transition-colors ${course.gradeSubmissionEnabled === null ? "bg-zinc-700 text-white" : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"}`}
-                                                        title="Follow Global Settings"
-                                                    >
-                                                        Auto
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleCourseOverride(course.id, course.gradeSubmissionEnabled, true)}
-                                                        className={`px-3 py-1 rounded text-xs transition-colors ${course.gradeSubmissionEnabled === true ? "bg-emerald-600 text-white" : "bg-zinc-800 text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/20"}`}
-                                                        title="Force Open"
-                                                    >
-                                                        Open
-                                                    </button>
-                                                    <button
-                                                        onClick={() => toggleCourseOverride(course.id, course.gradeSubmissionEnabled, false)}
-                                                        className={`px-3 py-1 rounded text-xs transition-colors ${course.gradeSubmissionEnabled === false ? "bg-red-600 text-white" : "bg-zinc-800 text-red-400 hover:bg-red-500/10 border border-red-500/20"}`}
-                                                        title="Force Close"
-                                                    >
-                                                        Close
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
     );

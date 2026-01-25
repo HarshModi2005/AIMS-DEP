@@ -24,9 +24,6 @@ import {
     RotateCcw,
     Upload,
 } from "lucide-react";
-import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
-import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
-import { CardSpotlight } from "@/components/ui/aceternity/card-spotlight";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -157,7 +154,7 @@ export default function StudentManagementPage() {
     const displayedStudents = useMemo(() => {
         // Sort: Pending first, then Enrolled, then others
         return [...filteredStudents].sort((a, b) => {
-            const statusOrder = { PENDING: 0, ENROLLED: 1, REJECTED: 2, DROPPED: 2 };
+            const statusOrder = { PENDING: 0, ENROLLED: 1, INSTRUCTOR_REJECTED: 2, DROPPED: 2, ADVISOR_REJECTED: 2 };
             const scoreA = statusOrder[a.enrollmentStatus as keyof typeof statusOrder] ?? 99;
             const scoreB = statusOrder[b.enrollmentStatus as keyof typeof statusOrder] ?? 99;
             return scoreA - scoreB;
@@ -260,7 +257,7 @@ export default function StudentManagementPage() {
                     if (res.ok) {
                         setStudents((prev) =>
                             prev.map((s) => s.enrollmentId === id
-                                ? { ...s, enrollmentStatus: action === "APPROVE" ? "ENROLLED" : "DROPPED" }
+                                ? { ...s, enrollmentStatus: action === "APPROVE" ? "ENROLLED" : "INSTRUCTOR_REJECTED" }
                                 : s
                             )
                         );
@@ -421,7 +418,7 @@ export default function StudentManagementPage() {
             setStudents((prev) =>
                 prev.map((s) =>
                     s.enrollmentId === enrollmentId
-                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "DROPPED" }
+                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "INSTRUCTOR_REJECTED" }
                         : s
                 )
             );
@@ -551,6 +548,7 @@ export default function StudentManagementPage() {
             case "ENROLLED": return "bg-emerald-500/20 text-emerald-400";
             case "PENDING": return "bg-amber-500/20 text-amber-400";
             case "PENDING_ADVISOR": return "bg-blue-500/20 text-blue-400";
+            case "INSTRUCTOR_REJECTED": return "bg-red-500/20 text-red-400";
             case "DROPPED":
             case "ADVISOR_REJECTED":
                 return "bg-red-500/20 text-red-400";
@@ -559,9 +557,8 @@ export default function StudentManagementPage() {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white p-6 relative overflow-hidden">
-            <BackgroundBeams className="absolute inset-0 z-0" />
-            <div className="max-w-7xl mx-auto relative z-10">
+        <div className="min-h-screen bg-zinc-950 text-white p-6">
+            <div className="max-w-7xl mx-auto">
                 {/* Header with Breadcrumb style */}
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center gap-4">
@@ -603,7 +600,7 @@ export default function StudentManagementPage() {
                 {activeTab === "main" ? (
                     <div className="space-y-8">
                         {/* Course Details Section */}
-                        <CardSpotlight className="p-6">
+                        <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label className="text-zinc-400">Course</Label>
@@ -686,10 +683,10 @@ export default function StudentManagementPage() {
                                     </select>
                                 </div>
                             </div>
-                        </CardSpotlight>
+                        </div>
 
                         {/* Instructors Section */}
-                        <CardSpotlight className="p-6">
+                        <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-6">
                             <div className="flex gap-4 mb-6">
                                 <div className="flex-1 relative">
                                     <Input
@@ -752,10 +749,10 @@ export default function StudentManagementPage() {
                                     ))}
                                 </tbody>
                             </table>
-                        </CardSpotlight>
+                        </div>
 
                         {/* Enrollment Criteria Section */}
-                        <CardSpotlight className="p-6 overflow-visible">
+                        <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-6 overflow-visible">
                             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end mb-6">
                                 <div className="space-y-1">
                                     <Label className="text-zinc-500 text-xs uppercase font-bold">Degree</Label>
@@ -841,21 +838,19 @@ export default function StudentManagementPage() {
                                     ))
                                 )}
                             </div>
-                        </CardSpotlight>
+                        </div>
 
                         {/* Action Buttons */}
                         <div className="flex gap-4 pt-4">
-                            <HoverBorderGradient
-                                containerClassName="rounded-lg"
-                                as="button"
+                            <button
                                 onClick={handleSave}
-                                className="bg-zinc-900 text-emerald-400 flex items-center gap-2 px-6 py-2.5"
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 px-6 py-2.5 font-medium transition-colors"
                             >
                                 <Save className="h-4 w-4" />
                                 <span>Save Changes</span>
-                            </HoverBorderGradient>
+                            </button>
 
-                            <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium transition-colors backdrop-blur-sm">
+                            <button className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 font-medium transition-colors">
                                 <RotateCcw className="h-4 w-4" />
                                 Clear
                             </button>
@@ -896,20 +891,18 @@ export default function StudentManagementPage() {
                                 >
                                     Cancel
                                 </button>
-                                <HoverBorderGradient
-                                    containerClassName="rounded-lg"
-                                    as="button"
-                                    onClick={saveGrades}
-                                    disabled={!submissionStatus?.isOpen}
-                                    className={`flex items-center gap-2 px-6 py-2.5 ${submissionStatus?.isOpen ? "bg-zinc-900 text-emerald-400" : "bg-zinc-800 text-zinc-500 cursor-not-allowed"}`}
+                                <button
+                                    onClick={() => submissionStatus?.isOpen && saveGrades()}
+                                    disabled={!submissionStatus?.isOpen || savingGrades}
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {savingGrades ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     <span>Save Grades ({Object.keys(gradeUpdates).length})</span>
-                                </HoverBorderGradient>
+                                </button>
                             </div>
                         </div>
 
-                        <CardSpotlight className="p-0 overflow-hidden bg-zinc-900/50">
+                        <div className="rounded-xl border border-white/10 bg-zinc-900/50 overflow-hidden">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-white/5 text-zinc-300">
                                     <tr>
@@ -957,7 +950,7 @@ export default function StudentManagementPage() {
                                     )}
                                 </tbody>
                             </table>
-                        </CardSpotlight>
+                        </div>
                     </div>
                 ) : activeTab === "enrollments" ? (
                     <>
@@ -1042,9 +1035,9 @@ export default function StudentManagementPage() {
                                         </th>
                                         <th className="px-4 py-3 font-medium">
                                             <div className="relative group inline-block">
-                                                <button className="flex items-center gap-1 bg-red-700 hover:bg-red-800 text-white px-3 py-1 rounded text-xs transition-colors">
+                                                <button className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors">
                                                     Action
-                                                    <ChevronDown className="h-3 w-3" />
+                                                    <ChevronDown className="h-4 w-4" />
                                                 </button>
                                                 <div className="absolute right-0 top-full mt-1 w-56 bg-zinc-800 border border-white/10 rounded-lg shadow-xl hidden group-hover:block z-20">
                                                     <div className="p-1">
@@ -1120,7 +1113,36 @@ export default function StudentManagementPage() {
                                                         className="rounded border-zinc-600 bg-zinc-800 cursor-pointer"
                                                     />
                                                 </td>
-                                                <td className="px-4 py-3"></td>
+                                                <td className="px-4 py-3">
+                                                    {student.enrollmentStatus === "PENDING" && (
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => handleAction(student.enrollmentId, "APPROVE")}
+                                                                disabled={processingId === student.enrollmentId}
+                                                                className="p-1.5 rounded-md hover:bg-emerald-500/10 text-emerald-400/50 hover:text-emerald-400 transition-colors disabled:opacity-50"
+                                                                title="Approve"
+                                                            >
+                                                                {processingId === student.enrollmentId ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <CheckCircle className="h-4 w-4" />
+                                                                )}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleAction(student.enrollmentId, "REJECT")}
+                                                                disabled={processingId === student.enrollmentId}
+                                                                className="p-1.5 rounded-md hover:bg-red-500/10 text-red-400/50 hover:text-red-400 transition-colors disabled:opacity-50"
+                                                                title="Reject"
+                                                            >
+                                                                {processingId === student.enrollmentId ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <XCircle className="h-4 w-4" />
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
@@ -1130,7 +1152,7 @@ export default function StudentManagementPage() {
                     </>
                 ) : (
                     <div className="text-center py-12 text-zinc-500">
-                        <p>Detailed View for {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} is under construction.</p>
+                        <p>Detailed view for {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} is under construction.</p>
                     </div>
                 )
                 }

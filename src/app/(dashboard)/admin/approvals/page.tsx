@@ -116,42 +116,58 @@ export default function AdminApprovalsPage() {
                         <p className="text-zinc-500">No pending course approvals found.</p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
-                        {offerings.map((offering) => (
-                            <div key={offering.id} className="bg-zinc-900 rounded-xl border border-white/10 p-6 flex items-center justify-between">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <span className="px-2 py-1 rounded text-xs font-semibold bg-indigo-500/20 text-indigo-400">
-                                            {offering.courseCode}
-                                        </span>
-                                        <h3 className="font-semibold text-lg">{offering.courseName}</h3>
-                                    </div>
-                                    <div className="text-sm text-zinc-400 space-y-1">
-                                        <p>Instructor: <span className="text-white">{offering.instructor}</span> • Department: <span className="text-white">{offering.department}</span></p>
-                                        <p>Credits: {offering.credits} • Max Strength: {offering.maxStrength} • Floated: {format(new Date(offering.floatedAt), "PPp")}</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => handleApproval(offering.id, "reject")}
-                                        disabled={processingId === offering.id}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
-                                    >
-                                        {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
-                                        Reject
-                                    </button>
-                                    <button
-                                        onClick={() => handleApproval(offering.id, "approve")}
-                                        disabled={processingId === offering.id}
-                                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors shadow-lg shadow-emerald-900/20"
-                                    >
-                                        {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                        Approve
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="rounded-xl border border-white/10 overflow-hidden">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-zinc-900/80 text-sm text-zinc-400">
+                                    <th className="text-left p-4 font-medium">Course Code</th>
+                                    <th className="text-left p-4 font-medium">Course Name</th>
+                                    <th className="text-left p-4 font-medium">Instructor</th>
+                                    <th className="text-left p-4 font-medium">Department</th>
+                                    <th className="text-left p-4 font-medium">Credits</th>
+                                    <th className="text-left p-4 font-medium">Strength</th>
+                                    <th className="text-left p-4 font-medium">Floated On</th>
+                                    <th className="text-right p-4 font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {offerings.map((offering) => (
+                                    <tr key={offering.id} className="hover:bg-white/5 transition-colors">
+                                        <td className="p-4">
+                                            <span className="px-2 py-1 rounded text-xs font-semibold bg-indigo-500/20 text-indigo-400">
+                                                {offering.courseCode}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 font-medium text-white">{offering.courseName}</td>
+                                        <td className="p-4 text-zinc-400">{offering.instructor}</td>
+                                        <td className="p-4 text-zinc-400 text-sm">{offering.department}</td>
+                                        <td className="p-4 text-zinc-400">{offering.credits}</td>
+                                        <td className="p-4 text-zinc-400">{offering.maxStrength}</td>
+                                        <td className="p-4 text-zinc-400 text-sm">{format(new Date(offering.floatedAt), "MMM d, yyyy")}</td>
+                                        <td className="p-4">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleApproval(offering.id, "reject")}
+                                                    disabled={processingId === offering.id}
+                                                    className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                                                    title="Reject"
+                                                >
+                                                    {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleApproval(offering.id, "approve")}
+                                                    disabled={processingId === offering.id}
+                                                    className="p-2 rounded-lg bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 border border-emerald-600/20 disabled:opacity-50 transition-colors"
+                                                    title="Approve"
+                                                >
+                                                    {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>
