@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Search, Filter, X, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Filter, X, CheckCircle, Clock, AlertCircle, Loader2, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import RazorpayButton from "@/components/payments/RazorpayButton";
@@ -22,6 +22,7 @@ interface CourseForEnrollment {
     enrollmentStatus: string | null;
     instructor: string;
     fee: number;
+    enrollmentType: string | null;
 }
 
 const departments = [
@@ -92,7 +93,7 @@ export default function EnrollmentPage() {
         return matchesStatus;
     });
 
-    const handleEnroll = async (courseId: string) => {
+    const handleEnroll = async (courseId: string, enrollmentType: string = "CREDIT") => {
         setEnrollingCourseId(courseId);
         setError(null);
         setSuccessMessage(null);
@@ -101,7 +102,7 @@ export default function EnrollmentPage() {
             const response = await fetch("/api/enrollments", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ courseOfferingId: courseId }),
+                body: JSON.stringify({ courseOfferingId: courseId, enrollmentType }),
             });
 
             const data = await response.json();
@@ -116,7 +117,7 @@ export default function EnrollmentPage() {
             setCourses((prev) =>
                 prev.map((c) =>
                     c.id === courseId
-                        ? { ...c, isPending: true }
+                        ? { ...c, isPending: true, enrollmentType }
                         : c
                 )
             );
@@ -357,40 +358,87 @@ export default function EnrollmentPage() {
                                                     amount={course.fee}
                                                     userEmail={session?.user?.email || ""}
                                                     userName={session?.user?.name || ""}
-                                                    onSuccess={() => handleEnroll(course.id)}
+                                                    onSuccess={() => handleEnroll(course.id, "CREDIT")}
                                                     disabled={course.status !== "OPEN_FOR_ENROLLMENT"}
                                                 />
                                             ) : (
-                                                <button
-                                                    onClick={() => {
-                                                        if (course.status !== "OPEN_FOR_ENROLLMENT") {
-                                                            setError("This course is not currently enrolling students.");
-                                                            return;
-                                                        }
-                                                        handleEnroll(course.id);
-                                                    }}
-                                                    disabled={course.isEnrolled || course.isPending || enrollingCourseId === course.id}
-                                                    className={cn(
-                                                        "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                                                        course.isEnrolled
-                                                            ? "bg-blue-600/20 text-blue-400 cursor-not-allowed"
-                                                            : course.isPending
-                                                                ? "bg-amber-600/20 text-amber-400 cursor-not-allowed"
-                                                                : course.status === "OPEN_FOR_ENROLLMENT"
-                                                                    ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                                                    : "bg-zinc-700 text-zinc-400 hover:bg-zinc-600"
-                                                    )}
-                                                >
-                                                    {enrollingCourseId === course.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : course.isEnrolled ? (
-                                                        "Enrolled"
-                                                    ) : course.isPending ? (
-                                                        "Pending"
+                                                <div className="flex items-center gap-2">
+                                                    {(!course.isEnrolled && !course.isPending && course.status === "OPEN_FOR_ENROLLMENT") ? (
+                                                        <div className="relative group">
+                                                            <button
+                                                                className={cn(
+                                                                    "px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2",
+                                                                    (enrollingCourseId === course.id) && "opacity-70 cursor-wait"
+                                                                )}
+                                                                disabled={enrollingCourseId === course.id}
+                                                            >
+                                                                {enrollingCourseId === course.id ? (
+                                                                    <>
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                        Processing...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        Enroll
+                                                                        <ChevronDown className="h-4 w-4" />
+                                                                    </>
+                                                                )}
+                                                            </button>
+
+                                                            {/* Dropdown Menu */}
+                                                            {enrollingCourseId !== course.id && (
+                                                                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
+                                                                    <button
+                                                                        onClick={() => handleEnroll(course.id, "CREDIT")}
+                                                                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
+                                                                    >
+                                                                        Credit
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleEnroll(course.id, "CREDIT_FOR_MINOR")}
+                                                                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
+                                                                    >
+                                                                        Credit for Minor
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleEnroll(course.id, "CREDIT_FOR_SPECIALIZATION")}
+                                                                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
+                                                                    >
+                                                                        Credit for Specialization
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleEnroll(course.id, "AUDIT")}
+                                                                        className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
+                                                                    >
+                                                                        Audit
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     ) : (
-                                                        "Enroll"
+                                                        <button
+                                                            disabled
+                                                            className={cn(
+                                                                "px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full",
+                                                                course.isEnrolled
+                                                                    ? "bg-zinc-700 text-zinc-400 cursor-not-allowed" // Grey for enrolled/pending
+                                                                    : course.isPending
+                                                                        ? "bg-zinc-700 text-zinc-400 cursor-not-allowed" // Grey for enrolled/pending
+                                                                        : "bg-zinc-700 text-zinc-400 cursor-not-allowed"
+                                                            )}
+                                                        >
+                                                            {course.isEnrolled || course.isPending ? (
+                                                                course.enrollmentType ? (
+                                                                    course.enrollmentType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+                                                                ) : (
+                                                                    "Enrolled"
+                                                                )
+                                                            ) : (
+                                                                "Closed"
+                                                            )}
+                                                        </button>
                                                     )}
-                                                </button>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

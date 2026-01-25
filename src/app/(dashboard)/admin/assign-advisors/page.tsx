@@ -322,7 +322,7 @@ export default function AssignAdvisorsPage() {
                                                 <td className="py-3 px-2 text-right">
                                                     <button
                                                         onClick={() => startEdit(advisor)}
-                                                        className="px-2 py-1 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-colors"
+                                                        className="px-3 py-1.5 text-sm font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded transition-colors"
                                                     >
                                                         Change
                                                     </button>

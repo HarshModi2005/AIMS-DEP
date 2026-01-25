@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
                         id: true,
                         courseOfferingId: true,
                         enrollmentStatus: true,
+                        enrollmentType: true,
                     },
                 },
             },
@@ -144,6 +145,7 @@ export async function GET(request: NextRequest) {
             isEnrolled: enrolledOfferingIds.has(offering.id),
             isPending: pendingOfferingIds.has(offering.id),
             enrollmentStatus: statusMap.get(offering.id) || null,
+            enrollmentType: student?.enrollments.find(e => e.courseOfferingId === offering.id)?.enrollmentType || null,
             instructor: offering.instructors
                 .map((i) => `${i.faculty.user.firstName} ${i.faculty.user.lastName}`)
                 .join(", "),
@@ -297,23 +299,48 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingEnrollment) {
+            const allowReEnroll = ["DROPPED", "WITHDRAWN", "ADVISOR_REJECTED", "INSTRUCTOR_REJECTED"].includes(existingEnrollment.enrollmentStatus);
+
+            if (!allowReEnroll) {
+                return NextResponse.json(
+                    { error: "Already enrolled in this course" },
+                    { status: 400 }
+                );
+            }
+
+            // Re-enroll: Update the existing record
+            const enrollment = await prisma.enrollment.update({
+                where: { id: existingEnrollment.id },
+                data: {
+                    enrollmentType: enrollmentType,
+                    enrollmentStatus: "PENDING",
+                    courseCategory: courseCategory || offering.course.courseCategory,
+                    enrolledAt: new Date(), // Refresh enrollment time
+                    // Reset other fields if necessary
+                    grade: null,
+                    attendancePercent: null,
+                    isCompleted: false,
+                    completionStatus: null,
+                    completedAt: null
+                },
+            });
+
             return NextResponse.json(
-                { error: "Already enrolled in this course" },
-                { status: 400 }
+                { message: "Re-enrollment request submitted. Awaiting faculty approval.", enrollment },
+                { status: 200 }
             );
         }
 
-        // Create enrollment with PENDING status (requires faculty approval)
+        // Create new enrollment
         const enrollment = await prisma.enrollment.create({
             data: {
                 studentId: student.id,
                 courseOfferingId: courseOfferingId,
                 enrollmentType: enrollmentType,
-                enrollmentStatus: "PENDING", // Changed from ENROLLED - requires faculty approval
+                enrollmentStatus: "PENDING",
                 courseCategory: courseCategory || offering.course.courseCategory,
             },
         });
-        // Note: currentStrength is NOT incremented here - it happens on approval
 
         return NextResponse.json(
             { message: "Enrollment request submitted. Awaiting faculty approval.", enrollment },
@@ -321,6 +348,11 @@ export async function POST(request: NextRequest) {
         );
     } catch (error) {
         console.error("Error enrolling:", error);
+        // @ts-ignore
+        if (error.code) console.error("Error code:", error.code);
+        // @ts-ignore
+        if (error.meta) console.error("Error meta:", error.meta);
+
         return NextResponse.json(
             { error: "Failed to enroll" },
             { status: 500 }

@@ -7,14 +7,13 @@ import {
     Users,
     BookOpen,
     MessageSquare,
-    Calendar,
-    Settings,
     BarChart3,
     TrendingUp,
     UserCheck,
     FileText,
     AlertCircle,
-    CreditCard
+    CreditCard,
+    Clock
 } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -38,6 +37,11 @@ export default async function AdminDashboard() {
 
     // Count assigned advisors
     const assignedAdvisors = await prisma.facultyAdvisor.count();
+
+    // Count pending course approvals
+    const pendingApprovals = await prisma.courseOffering.count({
+        where: { status: "PENDING_APPROVAL" }
+    });
 
     const quickStats = [
         { label: "Total Students", value: totalStudents.toString(), icon: Users, change: "+12%", trend: "up" },
@@ -69,7 +73,7 @@ export default async function AdminDashboard() {
             icon: AlertCircle,
             href: "/admin/approvals",
             color: "from-yellow-500 to-amber-500",
-            stats: { label: "Pending", value: "3" },
+            stats: { label: "Pending", value: pendingApprovals.toString() },
         },
         {
             title: "Course Management",
@@ -78,14 +82,6 @@ export default async function AdminDashboard() {
             href: "/admin/courses",
             color: "from-emerald-500 to-teal-500",
             stats: { label: "Active Courses", value: "156" },
-        },
-        {
-            title: "Session Management",
-            description: "Academic sessions and calendar events",
-            icon: Calendar,
-            href: "/admin/sessions",
-            color: "from-amber-500 to-orange-500",
-            stats: { label: "Current Session", value: "2025-II" },
         },
         {
             title: "Fee Management",
@@ -112,12 +108,12 @@ export default async function AdminDashboard() {
             stats: { label: "Reports Generated", value: "24" },
         },
         {
-            title: "System Settings",
-            description: "Configure system parameters and permissions",
-            icon: Settings,
-            href: "/admin/settings",
-            color: "from-zinc-500 to-slate-500",
-            stats: { label: "Last Updated", value: "Today" },
+            title: "Grade Submission Control",
+            description: "Manage grade submission windows and course overrides",
+            icon: Clock,
+            href: "/admin/grades",
+            color: "from-cyan-500 to-blue-500",
+            stats: { label: "Status", value: "Configured" },
         },
     ];
 
@@ -179,27 +175,6 @@ export default async function AdminDashboard() {
                             </div>
                         </Link>
                     ))}
-                </div>
-
-                {/* Recent Activity */}
-                <div className="mt-8 rounded-xl border border-white/10 bg-zinc-900/50 p-6">
-                    <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
-                    <div className="space-y-4">
-                        {[
-                            { action: "New user registered", user: "2023csb1028@iitrpr.ac.in", time: "5 minutes ago" },
-                            { action: "Course offering created", user: "Admin", time: "1 hour ago" },
-                            { action: "Feedback cycle started", user: "System", time: "2 hours ago" },
-                            { action: "Session 2025-II activated", user: "Super Admin", time: "1 day ago" },
-                        ].map((activity, idx) => (
-                            <div key={idx} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                                <div>
-                                    <p className="font-medium">{activity.action}</p>
-                                    <p className="text-sm text-zinc-500">By {activity.user}</p>
-                                </div>
-                                <span className="text-xs text-zinc-500">{activity.time}</span>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>
