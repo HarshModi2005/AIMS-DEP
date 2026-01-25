@@ -61,6 +61,46 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Unauthorized for this course" }, { status: 403 });
         }
 
+        // Check Grade Submission Window
+        let submissionOpen = false;
+        let message = "Grade submission is closed.";
+
+        // 1. Override Check - Disabled due to DB sync issues
+        // if (offering.gradeSubmissionEnabled === true) { ... }
+
+        // 2. Check Global Window Only
+        const now = new Date();
+        const globalWindow = await prisma.academicDate.findFirst({
+            where: {
+                eventType: "GRADES_SUBMISSION",
+                sessionId: offering.sessionId,
+                startDate: { lte: now },
+                endDate: { gte: now }
+            }
+        });
+
+        if (globalWindow) {
+            submissionOpen = true;
+        } else {
+            // Check if future or past
+            const upcoming = await prisma.academicDate.findFirst({
+                where: {
+                    eventType: "GRADES_SUBMISSION",
+                    sessionId: offering.sessionId,
+                    startDate: { gt: now }
+                }
+            });
+            if (upcoming) {
+                message = "Grade submission is yet to start.";
+            } else {
+                message = "Grade submission deadline has passed.";
+            }
+        }
+
+        if (!submissionOpen) {
+            return NextResponse.json({ error: message }, { status: 403 });
+        }
+
         const results = [];
         const updates = [];
 

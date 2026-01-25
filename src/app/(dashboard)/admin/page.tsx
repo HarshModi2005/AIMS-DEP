@@ -12,7 +12,8 @@ import {
     UserCheck,
     FileText,
     AlertCircle,
-    CreditCard
+    CreditCard,
+    Clock
 } from "lucide-react";
 
 export default async function AdminDashboard() {
@@ -105,6 +106,14 @@ export default async function AdminDashboard() {
             href: "/admin/reports",
             color: "from-rose-500 to-red-500",
             stats: { label: "Reports Generated", value: "24" },
+        },
+        {
+            title: "Grade Submission Control",
+            description: "Manage grade submission windows and course overrides",
+            icon: Clock,
+            href: "/admin/grades",
+            color: "from-cyan-500 to-blue-500",
+            stats: { label: "Status", value: "Configured" },
         },
     ];
 
