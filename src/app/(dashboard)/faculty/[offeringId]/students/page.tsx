@@ -21,6 +21,7 @@ import {
     Trash2,
     Save,
     RotateCcw,
+    MessageSquare,
 } from "lucide-react";
 import { BackgroundBeams } from "@/components/ui/aceternity/background-beams";
 import { HoverBorderGradient } from "@/components/ui/aceternity/hover-border-gradient";
@@ -79,6 +80,12 @@ interface CourseDetails {
     slot: string;
 }
 
+interface FeedbackItem {
+    id: string;
+    feedback: string;
+    submittedAt: string;
+}
+
 export default function StudentManagementPage() {
     const { data: session, status } = useSession();
     const params = useParams();
@@ -101,6 +108,10 @@ export default function StudentManagementPage() {
     // Grade state
     const [gradeUpdates, setGradeUpdates] = useState<Record<string, string>>({});
     const [savingGrades, setSavingGrades] = useState(false);
+
+    // Feedback State
+    const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
+    const [loadingFeedback, setLoadingFeedback] = useState(false);
 
     // Selection state
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -257,7 +268,7 @@ export default function StudentManagementPage() {
                     if (res.ok) {
                         setStudents((prev) =>
                             prev.map((s) => s.enrollmentId === id
-                                ? { ...s, enrollmentStatus: action === "APPROVE" ? "ENROLLED" : "DROPPED" }
+                                ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "INSTRUCTOR_REJECTED" }
                                 : s
                             )
                         );
@@ -366,6 +377,22 @@ export default function StudentManagementPage() {
         }
     }, [session, status, offeringId]);
 
+    // Fetch feedback when tab changes
+    useEffect(() => {
+        if (activeTab === "feedback" && feedbacks.length === 0) {
+            setLoadingFeedback(true);
+            fetch(`/api/faculty/feedback?offeringId=${offeringId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.feedbacks) {
+                        setFeedbacks(data.feedbacks);
+                    }
+                })
+                .catch(err => console.error("Failed to load feedback", err))
+                .finally(() => setLoadingFeedback(false));
+        }
+    }, [activeTab, offeringId]);
+
     // Auth check
     if (status === "loading") {
         return (
@@ -411,7 +438,7 @@ export default function StudentManagementPage() {
             setStudents((prev) =>
                 prev.map((s) =>
                     s.enrollmentId === enrollmentId
-                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "DROPPED" }
+                        ? { ...s, enrollmentStatus: action === "APPROVE" ? "PENDING_ADVISOR" : "INSTRUCTOR_REJECTED" }
                         : s
                 )
             );
@@ -531,7 +558,7 @@ export default function StudentManagementPage() {
 
     // Helper to format status display
     const formatStatus = (status: string) => {
-        if (status === "DROPPED") return "Instructor Rejected";
+        if (status === "DROPPED" || status === "INSTRUCTOR_REJECTED") return "Instructor Rejected";
         return status.toLowerCase().replace(/_/g, " ");
     };
 
@@ -543,6 +570,7 @@ export default function StudentManagementPage() {
             case "PENDING_ADVISOR": return "bg-blue-500/20 text-blue-400";
             case "DROPPED":
             case "ADVISOR_REJECTED":
+            case "INSTRUCTOR_REJECTED":
                 return "bg-red-500/20 text-red-400";
             default: return "bg-zinc-500/20 text-zinc-400";
         }
@@ -571,8 +599,8 @@ export default function StudentManagementPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-6 border-b border-white/10 mb-6">
-                    {["Main", "Enrollments", "Upload Grades", "Stats", "Notes"].map((tab) => (
+                <div className="flex items-center gap-6 border-b border-white/10 mb-6 overflow-x-auto">
+                    {["Main", "Enrollments", "Upload Grades", "Feedback", "Stats", "Notes"].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab.toLowerCase())}
@@ -1096,6 +1124,49 @@ export default function StudentManagementPage() {
                             </table>
                         </div>
                     </>
+                ) : activeTab === "feedback" ? (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-xl border border-white/10">
+                            <div>
+                                <h3 className="text-lg font-semibold text-zinc-200">Course Feedback</h3>
+                                <p className="text-zinc-500 text-sm">
+                                    Anonymous feedback submitted by students.
+                                </p>
+                            </div>
+                            <div className="px-4 py-2 bg-zinc-800 rounded-lg text-zinc-300 text-sm border border-white/10">
+                                Total Responses: {feedbacks.length}
+                            </div>
+                        </div>
+
+                        {loadingFeedback ? (
+                            <div className="flex justify-center p-12">
+                                <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+                            </div>
+                        ) : feedbacks.length === 0 ? (
+                            <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-12 text-center">
+                                <MessageSquare className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+                                <p className="text-zinc-400">No feedback received yet.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {feedbacks.map((item) => (
+                                    <CardSpotlight key={item.id} className="p-6 bg-zinc-900/50">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="p-2 rounded-lg bg-indigo-500/10">
+                                                <MessageSquare className="h-5 w-5 text-indigo-400" />
+                                            </div>
+                                            <span className="text-xs text-zinc-500">
+                                                {new Date(item.submittedAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <p className="text-zinc-300 leading-relaxed">
+                                            "{item.feedback}"
+                                        </p>
+                                    </CardSpotlight>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 ) : (
                     <div className="text-center py-12 text-zinc-500">
                         <p>Detailed View for {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} is under construction.</p>
