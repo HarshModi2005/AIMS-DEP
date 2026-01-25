@@ -158,7 +158,7 @@ export default function UserManagementPage() {
                                     <th className="text-left">Department</th>
                                     <th className="text-left">Role</th>
                                     <th className="text-left">Status</th>
-                                    <th className="w-12"></th>
+
                                 </tr>
                             </thead>
                             <tbody>
@@ -189,11 +189,7 @@ export default function UserManagementPage() {
                                                 {user.student?.currentStatus || "Active"}
                                             </span>
                                         </td>
-                                        <td>
-                                            <button className="p-2 rounded-lg hover:bg-white/5">
-                                                <MoreVertical className="h-4 w-4 text-zinc-500" />
-                                            </button>
-                                        </td>
+
                                     </tr>
                                 ))}
                             </tbody>
