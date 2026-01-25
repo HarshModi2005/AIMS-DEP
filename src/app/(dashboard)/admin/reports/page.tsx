@@ -6,7 +6,7 @@ import {
     Users,
     BookOpen,
     MessageSquare,
-    Download,
+
 } from "lucide-react";
 
 export default async function ReportsAnalyticsPage() {
@@ -64,9 +64,7 @@ export default async function ReportsAnalyticsPage() {
                             <li>• Active Courses: <span className="text-white">{activeCourses}</span></li>
                             <li>• Average Students / Course: <span className="text-white">{avgStudentsPerCourse}</span></li>
                         </ul>
-                        <button className="mt-4 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition">
-                            View Detailed Report
-                        </button>
+
                     </div>
 
                     {/* Feedback Analytics */}
@@ -80,9 +78,7 @@ export default async function ReportsAnalyticsPage() {
                             <li>• Pending Feedback: <span className="text-white">234</span></li>
                             <li>• Average Rating: <span className="text-white">4.1 / 5</span></li>
                         </ul>
-                        <button className="mt-4 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition">
-                            Analyze Feedback
-                        </button>
+
                     </div>
 
                     {/* Student Insights */}
@@ -98,24 +94,7 @@ export default async function ReportsAnalyticsPage() {
                         </ul>
                     </div>
 
-                    {/* Export Reports */}
-                    <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <Download className="h-6 w-6 text-amber-400" />
-                            <h2 className="text-xl font-semibold">Export Reports</h2>
-                        </div>
-                        <p className="text-sm text-zinc-400 mb-4">
-                            Download consolidated reports for audit and record-keeping.
-                        </p>
-                        <div className="flex gap-3">
-                            <button className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition">
-                                Export CSV
-                            </button>
-                            <button className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition">
-                                Export PDF
-                            </button>
-                        </div>
-                    </div>
+
 
                 </div>
 

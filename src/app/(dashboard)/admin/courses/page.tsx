@@ -197,7 +197,7 @@ export default function CourseManagementPage() {
                                     <th className="text-left">Credits</th>
                                     <th className="text-left">Department</th>
                                     <th className="text-left">Category</th>
-                                    <th className="w-24">Actions</th>
+
                                 </tr>
                             </thead>
                             <tbody>
@@ -217,16 +217,7 @@ export default function CourseManagementPage() {
                                                 {categoryLabels[course.courseCategory] || course.courseCategory}
                                             </span>
                                         </td>
-                                        <td>
-                                            <div className="flex items-center gap-2">
-                                                <button className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white">
-                                                    <Edit className="h-4 w-4" />
-                                                </button>
-                                                <button className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-red-400">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
+
                                     </tr>
                                 ))}
                             </tbody>
