@@ -117,7 +117,7 @@ export default function EnrollmentPage() {
             setCourses((prev) =>
                 prev.map((c) =>
                     c.id === courseId
-                        ? { ...c, isPending: true }
+                        ? { ...c, isPending: true, enrollmentType }
                         : c
                 )
             );
