@@ -419,12 +419,15 @@ enum EnrollmentType {
   AUDIT
   ADDITIONAL
   IMPROVEMENT
+  CREDIT_FOR_MINOR
+  CREDIT_FOR_SPECIALIZATION
 }
 
 enum EnrollmentStatus {
   PENDING
   PENDING_ADVISOR // Pending confirmation from Advisor (after Instructor approves)
   ADVISOR_REJECTED // Rejected by Advisor
+  INSTRUCTOR_REJECTED // Rejected by Instructor
   ENROLLED
   WAITLISTED
   DROPPED

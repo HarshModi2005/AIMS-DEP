@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { FileText, GraduationCap, Loader2 } from "lucide-react";
+import { FileText, GraduationCap, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Enrollment {
@@ -277,6 +277,7 @@ export default function StudentRecordPage() {
                                                         <th className="text-left">Grade</th>
                                                         <th className="text-left">Attendance</th>
                                                         <th className="text-left">Status</th>
+                                                        <th className="text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -318,10 +319,88 @@ export default function StudentRecordPage() {
                                                                         ? "bg-blue-500/20 text-blue-400"
                                                                         : enrollment.enrollmentStatus === "COMPLETED"
                                                                             ? "bg-emerald-500/20 text-emerald-400"
-                                                                            : "bg-zinc-500/20 text-zinc-400"
+                                                                            : ["INSTRUCTOR_REJECTED", "ADVISOR_REJECTED"].includes(enrollment.enrollmentStatus)
+                                                                                ? "bg-red-500/20 text-red-400"
+                                                                                : "bg-zinc-500/20 text-zinc-400"
                                                                 )}>
-                                                                    {enrollment.enrollmentStatus}
+                                                                    {enrollment.enrollmentStatus === "INSTRUCTOR_REJECTED"
+                                                                        ? "Instructor Rejected"
+                                                                        : enrollment.enrollmentStatus === "ADVISOR_REJECTED"
+                                                                            ? "Advisor Rejected"
+                                                                            : enrollment.enrollmentStatus === "DROPPED"
+                                                                                ? "Dropped by Student"
+                                                                                : enrollment.enrollmentStatus.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                                                                 </span>
+                                                            </td>
+                                                            <td className="text-right">
+                                                                {["ENROLLED", "PENDING"].includes(enrollment.enrollmentStatus) && (
+                                                                    <div className="relative group inline-block text-left">
+                                                                        <button className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                                                                            <ChevronDown className="h-4 w-4 text-zinc-400" />
+                                                                        </button>
+                                                                        <div className="absolute right-0 top-full mt-1 w-48 bg-zinc-900 border border-white/10 rounded-lg shadow-xl hidden group-hover:block z-20 overflow-hidden">
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    if (!confirm("Are you sure you want to drop this course?")) return;
+                                                                                    try {
+                                                                                        const res = await fetch(`/api/enrollments/${enrollment.id}`, {
+                                                                                            method: "PATCH",
+                                                                                            headers: { "Content-Type": "application/json" },
+                                                                                            body: JSON.stringify({ action: "DROP" })
+                                                                                        });
+                                                                                        if (res.ok) window.location.reload();
+                                                                                    } catch (e) {
+                                                                                        console.error(e);
+                                                                                        alert("Failed to drop course");
+                                                                                    }
+                                                                                }}
+                                                                                className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                                                                            >
+                                                                                Drop Course
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    if (!confirm("Are you sure you want to withdraw from this course?")) return;
+                                                                                    try {
+                                                                                        const res = await fetch(`/api/enrollments/${enrollment.id}`, {
+                                                                                            method: "PATCH",
+                                                                                            headers: { "Content-Type": "application/json" },
+                                                                                            body: JSON.stringify({ action: "WITHDRAW" })
+                                                                                        });
+                                                                                        if (res.ok) window.location.reload();
+                                                                                    } catch (e) {
+                                                                                        console.error(e);
+                                                                                        alert("Failed to withdraw");
+                                                                                    }
+                                                                                }}
+                                                                                className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 transition-colors"
+                                                                            >
+                                                                                Withdraw
+                                                                            </button>
+                                                                            {enrollment.enrollmentType !== "AUDIT" && (
+                                                                                <button
+                                                                                    onClick={async () => {
+                                                                                        if (!confirm("Change enrollment to Audit?")) return;
+                                                                                        try {
+                                                                                            const res = await fetch(`/api/enrollments/${enrollment.id}`, {
+                                                                                                method: "PATCH",
+                                                                                                headers: { "Content-Type": "application/json" },
+                                                                                                body: JSON.stringify({ action: "AUDIT" })
+                                                                                            });
+                                                                                            if (res.ok) window.location.reload();
+                                                                                        } catch (e) {
+                                                                                            console.error(e);
+                                                                                            alert("Failed to change to audit");
+                                                                                        }
+                                                                                    }}
+                                                                                    className="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 transition-colors"
+                                                                                >
+                                                                                    Audit Course
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     ))}

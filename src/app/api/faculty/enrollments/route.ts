@@ -210,7 +210,7 @@ export async function PUT(request: NextRequest) {
                 await prisma.$transaction([
                     prisma.enrollment.update({
                         where: { id: enrollmentId },
-                        data: { enrollmentStatus: "DROPPED" },
+                        data: { enrollmentStatus: "INSTRUCTOR_REJECTED" as any },
                     }),
                     prisma.courseOffering.update({
                         where: { id: enrollment.courseOfferingId },
@@ -220,13 +220,13 @@ export async function PUT(request: NextRequest) {
             } else {
                 await prisma.enrollment.update({
                     where: { id: enrollmentId },
-                    data: { enrollmentStatus: "DROPPED" },
+                    data: { enrollmentStatus: "INSTRUCTOR_REJECTED" as any },
                 });
             }
 
             return NextResponse.json({
                 message: "Enrollment rejected",
-                status: "DROPPED",
+                status: "INSTRUCTOR_REJECTED",
             });
         }
     } catch (error) {
