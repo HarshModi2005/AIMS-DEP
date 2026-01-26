@@ -56,6 +56,9 @@ export default function EnrollmentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [modalCourse, setModalCourse] = useState<CourseForEnrollment | null>(null);
+    const [modalEnrollType, setModalEnrollType] = useState<string>("");
 
     // Fetch courses
     useEffect(() => {
@@ -389,25 +392,41 @@ export default function EnrollmentPage() {
                                                             {enrollingCourseId !== course.id && (
                                                                 <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-white/10 bg-zinc-900 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-20 overflow-hidden">
                                                                     <button
-                                                                        onClick={() => handleEnroll(course.id, "CREDIT")}
+                                                                        onClick={() => {
+                                                                            setModalCourse(course);
+                                                                            setModalEnrollType("CREDIT");
+                                                                            setShowConfirmModal(true);
+                                                                        }}
                                                                         className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
                                                                     >
                                                                         Credit
                                                                     </button>
                                                                     <button
-                                                                        onClick={() => handleEnroll(course.id, "CREDIT_FOR_MINOR")}
+                                                                        onClick={() => {
+                                                                            setModalCourse(course);
+                                                                            setModalEnrollType("CREDIT_FOR_MINOR");
+                                                                            setShowConfirmModal(true);
+                                                                        }}
                                                                         className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
                                                                     >
                                                                         Credit for Minor
                                                                     </button>
                                                                     <button
-                                                                        onClick={() => handleEnroll(course.id, "CREDIT_FOR_SPECIALIZATION")}
+                                                                        onClick={() => {
+                                                                            setModalCourse(course);
+                                                                            setModalEnrollType("CREDIT_FOR_SPECIALIZATION");
+                                                                            setShowConfirmModal(true);
+                                                                        }}
                                                                         className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors border-b border-white/5"
                                                                     >
                                                                         Credit for Specialization
                                                                     </button>
                                                                     <button
-                                                                        onClick={() => handleEnroll(course.id, "AUDIT")}
+                                                                        onClick={() => {
+                                                                            setModalCourse(course);
+                                                                            setModalEnrollType("AUDIT");
+                                                                            setShowConfirmModal(true);
+                                                                        }}
                                                                         className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"
                                                                     >
                                                                         Audit
@@ -458,6 +477,71 @@ export default function EnrollmentPage() {
                         </div>
                     )}
                 </div>
+                {/* Confirmation Modal */}
+                {showConfirmModal && modalCourse && (
+                    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-zinc-900 rounded-2xl border border-white/10 w-full max-w-md overflow-hidden shadow-2xl">
+                            {/* Modal Header */}
+                            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-zinc-900/50">
+                                <h3 className="font-semibold text-lg flex items-center gap-2">
+                                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                                    Confirm Enrollment
+                                </h3>
+                                <button
+                                    onClick={() => setShowConfirmModal(false)}
+                                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6">
+                                <div className="mb-6">
+                                    <p className="text-zinc-400 text-sm mb-1">You are about to enroll in:</p>
+                                    <p className="text-white font-medium text-lg leading-snug">
+                                        <span className="text-indigo-400">{modalCourse.code}</span> - {modalCourse.name}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-zinc-800/50 mb-6">
+                                    <div>
+                                        <p className="text-zinc-500 text-xs uppercase tracking-wider font-semibold">Enrollment Type</p>
+                                        <p className="text-indigo-300 font-medium">
+                                            {modalEnrollType.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-zinc-500 text-xs uppercase tracking-wider font-semibold">Credits</p>
+                                        <p className="text-white font-medium">{modalCourse.credits}</p>
+                                    </div>
+                                </div>
+
+                                <p className="text-sm text-zinc-400 mb-6 italic">
+                                    * Your enrollment request will be sent to the instructor and advisor for approval.
+                                </p>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowConfirmModal(false)}
+                                        className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 font-medium transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleEnroll(modalCourse.id, modalEnrollType);
+                                            setShowConfirmModal(false);
+                                        }}
+                                        className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                                    >
+                                        Confirm Enrollment
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
