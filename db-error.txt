@@ -1,6 +1,0 @@
-Connection failed: Error: Cannot find module './query_compiler_fast_bg.js'
-Require stack:
-- E:\Projects\AIMS-DEP\node_modules\.prisma\client\index.js
-- E:\Projects\AIMS-DEP\node_modules\.prisma\client\default.js
-- E:\Projects\AIMS-DEP\node_modules\@prisma\client\default.js
-- E:\Projects\AIMS-DEP\scripts\test-db.ts

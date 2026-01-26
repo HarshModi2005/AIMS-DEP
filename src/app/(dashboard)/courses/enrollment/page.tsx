@@ -6,7 +6,6 @@ import { Search, Filter, X, CheckCircle, Clock, AlertCircle, Loader2, ChevronDow
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import RazorpayButton from "@/components/payments/RazorpayButton";
-import { ConfirmationModal } from "@/components/ui/confirmation-modal";
 
 interface CourseForEnrollment {
     id: string;
@@ -57,14 +56,9 @@ export default function EnrollmentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
-<<<<<<< HEAD
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [modalCourse, setModalCourse] = useState<CourseForEnrollment | null>(null);
     const [modalEnrollType, setModalEnrollType] = useState<string>("");
-=======
-    const [confirmationOpen, setConfirmationOpen] = useState(false);
-    const [courseToEnroll, setCourseToEnroll] = useState<CourseForEnrollment | null>(null);
->>>>>>> 12521da2bbc72ce6ad130950a7250892186c8ba5
 
     // Fetch courses
     useEffect(() => {
@@ -102,18 +96,7 @@ export default function EnrollmentPage() {
         return matchesStatus;
     });
 
-<<<<<<< HEAD
     const handleEnroll = async (courseId: string, enrollmentType: string = "CREDIT") => {
-=======
-    const initiateEnrollment = (course: CourseForEnrollment) => {
-        setCourseToEnroll(course);
-        setConfirmationOpen(true);
-        setError(null);
-        setSuccessMessage(null);
-    };
-
-    const handlePaymentSuccess = async (courseId: string) => {
->>>>>>> 12521da2bbc72ce6ad130950a7250892186c8ba5
         setEnrollingCourseId(courseId);
         setError(null);
         setSuccessMessage(null);
@@ -143,50 +126,6 @@ export default function EnrollmentPage() {
             );
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to enroll");
-        } finally {
-            setEnrollingCourseId(null);
-        }
-    };
-
-    const handleConfirmEnrollment = async () => {
-        if (!courseToEnroll) return;
-
-        const courseId = courseToEnroll.id;
-        setEnrollingCourseId(courseId); // Used for loading state
-
-        try {
-            const response = await fetch("/api/enrollments", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ courseOfferingId: courseId }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || "Failed to enroll");
-            }
-
-            setSuccessMessage(`Successfully requested enrollment for ${courseToEnroll.code}: ${courseToEnroll.name}. Awaiting faculty approval.`);
-
-            // Update the course in the list - mark as pending, not enrolled
-            setCourses((prev) =>
-                prev.map((c) =>
-                    c.id === courseId
-                        ? { ...c, isPending: true }
-                        : c
-                )
-            );
-
-            // Close modal on success
-            setConfirmationOpen(false);
-            setCourseToEnroll(null);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to enroll");
-            // We keep the modal open on error so they can read it? Or close it and show error on page?
-            // The error is shown on the page based on `error` state.
-            // Let's close modal so they can see the error on the page.
-            setConfirmationOpen(false);
         } finally {
             setEnrollingCourseId(null);
         }
@@ -422,7 +361,6 @@ export default function EnrollmentPage() {
                                                     amount={course.fee}
                                                     userEmail={session?.user?.email || ""}
                                                     userName={session?.user?.name || ""}
-<<<<<<< HEAD
                                                     onSuccess={() => handleEnroll(course.id, "CREDIT")}
                                                     disabled={course.status !== "OPEN_FOR_ENROLLMENT"}
                                                 />
@@ -496,32 +434,6 @@ export default function EnrollmentPage() {
                                                                 </div>
                                                             )}
                                                         </div>
-=======
-                                                    onSuccess={() => handlePaymentSuccess(course.id)}
-                                                    disabled={course.status !== "OPEN_FOR_ENROLLMENT"}
-                                                />
-                                            ) : (
-                                                <button
-                                                    onClick={() => initiateEnrollment(course)}
-                                                    disabled={course.isEnrolled || course.isPending || course.status !== "OPEN_FOR_ENROLLMENT" || enrollingCourseId === course.id}
-                                                    className={cn(
-                                                        "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                                                        course.isEnrolled
-                                                            ? "bg-blue-600/20 text-blue-400 cursor-not-allowed"
-                                                            : course.isPending
-                                                                ? "bg-amber-600/20 text-amber-400 cursor-not-allowed"
-                                                                : course.status === "OPEN_FOR_ENROLLMENT"
-                                                                    ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                                                    : "bg-zinc-700 text-zinc-400 cursor-not-allowed"
-                                                    )}
-                                                >
-                                                    {enrollingCourseId === course.id ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : course.isEnrolled ? (
-                                                        "Enrolled"
-                                                    ) : course.isPending ? (
-                                                        "Pending"
->>>>>>> 12521da2bbc72ce6ad130950a7250892186c8ba5
                                                     ) : (
                                                         <button
                                                             disabled
@@ -631,28 +543,6 @@ export default function EnrollmentPage() {
                     </div>
                 )}
             </div>
-
-            <ConfirmationModal
-                isOpen={confirmationOpen}
-                onClose={() => !enrollingCourseId && setConfirmationOpen(false)}
-                onConfirm={handleConfirmEnrollment}
-                title="Confirm Enrollment"
-                description={
-                    courseToEnroll ? (
-                        <div className="space-y-2">
-                            <p>Are you sure you want to enroll in <strong>{courseToEnroll.code}: {courseToEnroll.name}</strong>?</p>
-                            <p className="text-sm text-zinc-500">
-                                This will send a request to the faculty advisor for approval.
-                                {courseToEnroll.fee > 0 && " Payment will be required after approval."}
-                            </p>
-                        </div>
-                    ) : "Are you sure you want to enroll?"
-                }
-                confirmText="Yes, Enroll Me"
-                cancelText="No, Cancel"
-                isLoading={!!enrollingCourseId}
-                variant="default"
-            />
-        </div >
+        </div>
     );
 }

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Clock, XCircle, CreditCard, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PayFeeWithConfirmation from "./PayFeeWithConfirmation";
+import PayPendingButton from "@/components/payments/PayPendingButton";
 
 export default async function FeesPage() {
     const session = await auth();
@@ -107,7 +107,7 @@ export default async function FeesPage() {
                                             <Clock className="h-4 w-4" />
                                             <span>Required for enrollment</span>
                                         </div>
-                                        <PayFeeWithConfirmation
+                                        <PayPendingButton
                                             courseOfferingId="" // Not course specific
                                             sessionId={currentSession.id} // Session specific
                                             amount={currentSession.semesterFee}
@@ -173,7 +173,7 @@ export default async function FeesPage() {
                                             {payment.status === "PENDING" ? (
                                                 <div className="flex items-center gap-2">
                                                     {getStatusBadge(payment.status)}
-                                                    <PayFeeWithConfirmation
+                                                    <PayPendingButton
                                                         courseOfferingId={payment.courseOfferingId || ""}
                                                         sessionId={payment.sessionId || ""}
                                                         amount={payment.amount}
