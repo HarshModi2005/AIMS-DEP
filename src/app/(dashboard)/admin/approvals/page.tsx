@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Loader2, CheckCircle, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import ConfirmationModal from "@/components/ui/confirmation-modal";
 
 interface PendingOffering {
     id: string;
@@ -25,6 +26,10 @@ export default function AdminApprovalsPage() {
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
+
+    // Confirmation Modal State
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ offering: PendingOffering, type: "approve" | "reject" } | null>(null);
 
     useEffect(() => {
         if (status === "authenticated" && (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN")) {
@@ -46,9 +51,19 @@ export default function AdminApprovalsPage() {
         }
     }
 
-    async function handleApproval(id: string, action: "approve" | "reject") {
+    function handleApproval(offering: PendingOffering, action: "approve" | "reject") {
+        setConfirmAction({ offering, type: action });
+        setShowConfirm(true);
+    }
+
+    async function executeApproval() {
+        if (!confirmAction) return;
+        const { offering, type: action } = confirmAction;
+        const id = offering.id;
+
         setProcessingId(id);
         setMessage(null);
+        setShowConfirm(false);
 
         try {
             const status = action === "approve" ? "OPEN_FOR_ENROLLMENT" : "REJECTED";
@@ -74,6 +89,7 @@ export default function AdminApprovalsPage() {
             setMessage({ type: "error", text: "Failed to process request" });
         } finally {
             setProcessingId(null);
+            setConfirmAction(null);
         }
     }
 
@@ -147,7 +163,7 @@ export default function AdminApprovalsPage() {
                                         <td className="p-4">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
-                                                    onClick={() => handleApproval(offering.id, "reject")}
+                                                    onClick={() => handleApproval(offering, "reject")}
                                                     disabled={processingId === offering.id}
                                                     className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
                                                     title="Reject"
@@ -155,7 +171,7 @@ export default function AdminApprovalsPage() {
                                                     {processingId === offering.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
                                                 </button>
                                                 <button
-                                                    onClick={() => handleApproval(offering.id, "approve")}
+                                                    onClick={() => handleApproval(offering, "approve")}
                                                     disabled={processingId === offering.id}
                                                     className="p-2 rounded-lg bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 hover:text-emerald-300 border border-emerald-600/20 disabled:opacity-50 transition-colors"
                                                     title="Approve"
@@ -170,6 +186,18 @@ export default function AdminApprovalsPage() {
                         </table>
                     </div>
                 )}
+
+                <ConfirmationModal
+                    isOpen={showConfirm}
+                    onClose={() => {
+                        setShowConfirm(false);
+                        setConfirmAction(null);
+                    }}
+                    onConfirm={executeApproval}
+                    title={confirmAction?.type === "approve" ? "Confirm Course Approval" : "Confirm Course Rejection"}
+                    message={`Are you sure you want to ${confirmAction?.type} the course offering for "${confirmAction?.offering.courseCode}: ${confirmAction?.offering.courseName}"?`}
+                    confirmLabel={confirmAction?.type === "approve" ? "Yes, Approve" : "Yes, Reject"}
+                />
             </div>
         </div>
     );

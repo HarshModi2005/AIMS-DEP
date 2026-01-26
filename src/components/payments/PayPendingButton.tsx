@@ -10,6 +10,7 @@ interface PayPendingButtonProps {
     userEmail: string;
     userName: string;
     label?: string;
+    askConfirmation?: boolean;
 }
 
 export default function PayPendingButton({
@@ -19,6 +20,7 @@ export default function PayPendingButton({
     userEmail,
     userName,
     label,
+    askConfirmation,
 }: PayPendingButtonProps) {
     const router = useRouter();
 
@@ -30,6 +32,7 @@ export default function PayPendingButton({
             userEmail={userEmail}
             userName={userName}
             label={label}
+            askConfirmation={askConfirmation}
             onSuccess={() => {
                 router.refresh();
             }}
