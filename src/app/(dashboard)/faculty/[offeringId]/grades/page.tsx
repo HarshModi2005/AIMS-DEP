@@ -116,7 +116,7 @@ export default function GradeUploadPage({ params }: { params: Promise<{ offering
                 setValidationReport(report);
 
                 // Update local status based on report
-                const updatedData = parsedData.map(row => {
+                const updatedData: GradeRow[] = parsedData.map(row => {
                     const statusRow = report.find((r: any) => r.enrollmentNumber === row.enrollmentNumber);
                     return {
                         ...row,

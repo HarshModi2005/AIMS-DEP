@@ -163,6 +163,18 @@ export default function CourseEnrollmentPage() {
         a.click();
     };
 
+    const handleFilteredAction = async (action: "APPROVE" | "REJECT") => {
+        const pendingIds = filteredEnrollments
+            .filter(e => e.status === "PENDING_ADVISOR")
+            .map(e => e.id);
+
+        if (pendingIds.length === 0) return;
+
+        if (confirm(`Are you sure you want to ${action.toLowerCase()} all ${pendingIds.length} pending requests in the current filtered view?`)) {
+            await handleAction(pendingIds, action);
+        }
+    };
+
     const pendingCount = enrollments.filter(e => e.status === "PENDING_ADVISOR").length;
 
     return (
@@ -217,6 +229,33 @@ export default function CourseEnrollmentPage() {
                             <Download className="h-4 w-4" />
                             Export CSV
                         </button>
+
+                        <div className="relative group">
+                            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors">
+                                Actions
+                                <ChevronDown className="h-4 w-4" />
+                            </button>
+                            <div className="absolute right-0 top-full mt-1 w-56 bg-zinc-800 border border-white/10 rounded-lg shadow-xl hidden group-hover:block z-20">
+                                <div className="p-1">
+                                    <button
+                                        onClick={() => handleFilteredAction("APPROVE")}
+                                        disabled={filteredEnrollments.filter(e => e.status === "PENDING_ADVISOR").length === 0}
+                                        className="w-full text-left px-3 py-2 hover:bg-emerald-500/10 text-emerald-400 rounded text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <CheckCircle className="h-4 w-4" />
+                                        Approve Filtered ({filteredEnrollments.filter(e => e.status === "PENDING_ADVISOR").length})
+                                    </button>
+                                    <button
+                                        onClick={() => handleFilteredAction("REJECT")}
+                                        disabled={filteredEnrollments.filter(e => e.status === "PENDING_ADVISOR").length === 0}
+                                        className="w-full text-left px-3 py-2 hover:bg-red-500/10 text-red-400 rounded text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <XCircle className="h-4 w-4" />
+                                        Reject Filtered ({filteredEnrollments.filter(e => e.status === "PENDING_ADVISOR").length})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

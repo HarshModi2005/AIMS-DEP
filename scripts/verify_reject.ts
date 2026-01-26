@@ -55,7 +55,7 @@ async function main() {
         return;
     }
 
-    console.log(`Found pending course: ${course.id} (${course.courseCode})`);
+    console.log(`Found pending course: ${course.id} (${course.courseId})`);
 
     console.log("Attempting to update status to REJECTED...");
     try {

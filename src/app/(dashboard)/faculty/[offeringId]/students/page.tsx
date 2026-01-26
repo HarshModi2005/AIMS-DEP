@@ -251,12 +251,12 @@ export default function StudentManagementPage() {
         }
     };
 
-    const handleBulkAction = async (action: "APPROVE" | "REJECT") => {
-        if (selectedIds.size === 0) return;
+    const processBulkAction = async (ids: string[], action: "APPROVE" | "REJECT") => {
+        if (ids.length === 0) return;
 
         setBulkApproving(true);
         try {
-            const promises = Array.from(selectedIds).map(id => {
+            const promises = ids.map(id => {
                 const student = students.find(s => s.enrollmentId === id);
                 if (!student) return Promise.resolve();
 
@@ -287,10 +287,27 @@ export default function StudentManagementPage() {
             setOffering(refreshData.offering);
             setStudents(refreshData.students);
 
+            setError(null); // Clear any errors on success
         } catch (err) {
             setError("Failed to perform bulk action");
         } finally {
             setBulkApproving(false);
+        }
+    };
+
+    const handleBulkAction = async (action: "APPROVE" | "REJECT") => {
+        await processBulkAction(Array.from(selectedIds), action);
+    };
+
+    const handleFilteredAction = async (action: "APPROVE" | "REJECT") => {
+        const pendingInFiltered = displayedStudents
+            .filter(s => s.enrollmentStatus === "PENDING")
+            .map(s => s.enrollmentId);
+
+        if (pendingInFiltered.length === 0) return;
+
+        if (confirm(`Are you sure you want to ${action.toLowerCase()} all ${pendingInFiltered.length} pending students in the current filtered view?`)) {
+            await processBulkAction(pendingInFiltered, action);
         }
     };
 
@@ -1102,6 +1119,26 @@ export default function StudentManagementPage() {
                                                                 >
                                                                     <XCircle className="h-4 w-4" />
                                                                     Reject Selected ({selectedIds.size})
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {displayedStudents.some(s => s.enrollmentStatus === "PENDING") && (
+                                                            <>
+                                                                <div className="h-px bg-white/10 my-1" />
+                                                                <button
+                                                                    onClick={() => handleFilteredAction("APPROVE")}
+                                                                    className="w-full text-left px-3 py-2 hover:bg-emerald-500/10 text-emerald-400 rounded text-sm flex items-center gap-2"
+                                                                >
+                                                                    <CheckCircle className="h-4 w-4" />
+                                                                    Accept Visible Pending ({displayedStudents.filter(s => s.enrollmentStatus === "PENDING").length})
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleFilteredAction("REJECT")}
+                                                                    className="w-full text-left px-3 py-2 hover:bg-red-500/10 text-red-400 rounded text-sm flex items-center gap-2"
+                                                                >
+                                                                    <XCircle className="h-4 w-4" />
+                                                                    Reject Visible Pending ({displayedStudents.filter(s => s.enrollmentStatus === "PENDING").length})
                                                                 </button>
                                                             </>
                                                         )}
