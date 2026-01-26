@@ -54,7 +54,7 @@ export const POST = async (req: Request) => {
 
         if (!result.success) {
             return NextResponse.json(
-                { error: "Invalid input", details: result.error.errors },
+                { error: "Invalid input", details: result.error.issues },
                 { status: 400 }
             );
         }
