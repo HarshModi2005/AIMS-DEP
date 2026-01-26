@@ -114,6 +114,7 @@ export default async function FeesPage() {
                                             userEmail={session?.user?.email || ""}
                                             userName={session?.user?.name || ""}
                                             label="Pay Semester Fee"
+                                            askConfirmation={true}
                                         />
                                     </div>
                                 )}

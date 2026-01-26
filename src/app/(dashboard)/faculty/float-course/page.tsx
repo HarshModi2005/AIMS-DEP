@@ -5,6 +5,7 @@ import { redirect, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Search, Loader2, CheckCircle, Plus } from "lucide-react";
 import Link from "next/link";
+import ConfirmationModal from "@/components/ui/confirmation-modal";
 
 interface Course {
     id: string;
@@ -47,6 +48,7 @@ export default function FloatCoursePage() {
     const [search, setSearch] = useState("");
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
     const [maxStrength, setMaxStrength] = useState(60);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     // Toggle between selecting existing or creating new
     const [mode, setMode] = useState<"select" | "create">("select");
@@ -126,8 +128,12 @@ export default function FloatCoursePage() {
         setNewCourse((prev) => ({ ...prev, ...updates }));
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setShowConfirm(true);
+    };
+
+    const handleConfirmSubmit = async () => {
         setSubmitting(true);
         setError(null);
 
@@ -472,6 +478,19 @@ export default function FloatCoursePage() {
                         )}
                     </button>
                 </form>
+
+                <ConfirmationModal
+                    isOpen={showConfirm}
+                    onClose={() => setShowConfirm(false)}
+                    onConfirm={handleConfirmSubmit}
+                    title="Confirm Float Course"
+                    message={
+                        mode === "create"
+                            ? `Are you sure you want to create and float "${newCourse.courseName}"?`
+                            : `Are you sure you want to float "${selectedCourse?.courseName}"?`
+                    }
+                    confirmLabel={mode === "create" ? "Create & Float" : "Float Course"}
+                />
             </div>
         </div>
     );

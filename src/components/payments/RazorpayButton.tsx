@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Script from "next/script";
 import { Button } from "@/components/ui/button";
+import ConfirmationModal from "@/components/ui/confirmation-modal";
 
 declare global {
     interface Window {
@@ -19,6 +20,7 @@ interface RazorpayButtonProps {
     userName?: string;
     disabled?: boolean;
     label?: string;
+    askConfirmation?: boolean;
 }
 
 export default function RazorpayButton({
@@ -30,10 +32,12 @@ export default function RazorpayButton({
     userName,
     disabled,
     label,
+    askConfirmation,
 }: RazorpayButtonProps) {
     const [loading, setLoading] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
-    const handlePayment = async () => {
+    const initiatePayment = async () => {
         setLoading(true);
 
         try {
@@ -114,9 +118,26 @@ export default function RazorpayButton({
                 id="razorpay-checkout-js"
                 src="https://checkout.razorpay.com/v1/checkout.js"
             />
-            <Button onClick={handlePayment} disabled={loading || disabled}>
+            <Button
+                onClick={() => {
+                    if (askConfirmation) {
+                        setShowConfirm(true);
+                    } else {
+                        initiatePayment();
+                    }
+                }}
+                disabled={loading || disabled}
+            >
                 {loading ? "Processing..." : label || `Pay ₹${amount}`}
             </Button>
+
+            <ConfirmationModal
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={initiatePayment}
+                title="Confirm Payment"
+                message={`Are you sure you want to pay ₹${amount} right now?`}
+            />
         </>
     );
 }

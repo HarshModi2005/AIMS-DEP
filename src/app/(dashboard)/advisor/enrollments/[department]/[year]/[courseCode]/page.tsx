@@ -16,6 +16,7 @@ import {
     ChevronDown,
     Clock,
 } from "lucide-react";
+import ConfirmationModal from "@/components/ui/confirmation-modal";
 
 interface Enrollment {
     id: string;
@@ -44,6 +45,10 @@ export default function CourseEnrollmentPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<"rollNumber" | "requestTime">("requestTime");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // Confirmation Modal State
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{ ids: string[], type: "APPROVE" | "REJECT" } | null>(null);
 
     useEffect(() => {
         const fetchEnrollments = async () => {
@@ -89,7 +94,15 @@ export default function CourseEnrollmentPage() {
         return result;
     }, [enrollments, searchQuery, sortBy]);
 
-    const handleAction = async (ids: string[], action: "APPROVE" | "REJECT") => {
+    const handleAction = (ids: string[], action: "APPROVE" | "REJECT") => {
+        setConfirmAction({ ids, type: action });
+        setShowConfirm(true);
+    };
+
+    const executeAction = async () => {
+        if (!confirmAction) return;
+        const { ids, type: action } = confirmAction;
+
         setProcessing(true);
         try {
             const res = await fetch("/api/advisor/enrollments", {
@@ -109,6 +122,8 @@ export default function CourseEnrollmentPage() {
             console.error("Failed to process action", error);
         } finally {
             setProcessing(false);
+            setShowConfirm(false);
+            setConfirmAction(null);
         }
     };
 
@@ -321,6 +336,18 @@ export default function CourseEnrollmentPage() {
                         </table>
                     </div>
                 )}
+
+                <ConfirmationModal
+                    isOpen={showConfirm}
+                    onClose={() => {
+                        setShowConfirm(false);
+                        setConfirmAction(null);
+                    }}
+                    onConfirm={executeAction}
+                    title={confirmAction?.type === "APPROVE" ? "Confirm Approval" : "Confirm Rejection"}
+                    message={`Are you sure you want to ${confirmAction?.type === "APPROVE" ? "approve" : "reject"} ${confirmAction?.ids.length === 1 ? "this enrollment request" : `${confirmAction?.ids.length} enrollment requests`}?`}
+                    confirmLabel={confirmAction?.type === "APPROVE" ? "Yes, Approve" : "Yes, Reject"}
+                />
             </div>
         </div>
     );

@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Plus, Search, UserCheck, Edit2, X } from "lucide-react";
+import ConfirmationModal from "@/components/ui/confirmation-modal";
 
 interface Advisor {
     id: string;
@@ -53,6 +54,7 @@ export default function AssignAdvisorsPage() {
     const [showFacultyDropdown, setShowFacultyDropdown] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState("");
+    const [showConfirm, setShowConfirm] = useState(false);
 
     // Edit Mode
     const [editingAdvisor, setEditingAdvisor] = useState<Advisor | null>(null);
@@ -101,14 +103,19 @@ export default function AssignAdvisorsPage() {
         }
     };
 
-    const handleAssign = async (e: React.FormEvent) => {
+    const handleAssign = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedFaculty) {
             setMessage("Please select a faculty member");
             return;
         }
+        setShowConfirm(true);
+    };
+
+    const confirmAssign = async () => {
         setSubmitting(true);
         setMessage("");
+        setShowConfirm(false);
 
         try {
             const res = await fetch("/api/admin/assign-advisor", {
@@ -341,6 +348,15 @@ export default function AssignAdvisorsPage() {
             {showFacultyDropdown && (
                 <div className="fixed inset-0 z-0" onClick={() => setShowFacultyDropdown(false)} />
             )}
+
+            <ConfirmationModal
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={confirmAssign}
+                title={editingAdvisor ? "Confirm Change Advisor" : "Confirm Advisor Assignment"}
+                message={`Are you sure you want to assign ${selectedFaculty?.name} as the faculty advisor for ${editingAdvisor ? editingAdvisor.department : department} batch ${editingAdvisor ? editingAdvisor.batchYear : batchYear}?`}
+                confirmLabel={editingAdvisor ? "Confirm Change" : "Confirm Assignment"}
+            />
         </div>
     );
 }
